@@ -1,0 +1,99 @@
+name: Fix Farmandeh v0.4 Service Worker
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-service-worker:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Replace old service worker
+        shell: bash
+        run: |
+          set -e
+
+          test -f web/index.html
+          test -f web/app.js
+          test -f web/sw.js
+
+          cat > web/sw.js <<'EOF'
+          const CACHE_VERSION = "farmandeh-v0.4.2";
+
+          self.addEventListener("install", event => {
+            self.skipWaiting();
+          });
+
+          self.addEventListener("activate", event => {
+            event.waitUntil(
+              caches.keys()
+                .then(keys => Promise.all(keys.map(key => caches.delete(key))))
+                .then(() => self.clients.claim())
+            );
+          });
+
+          self.addEventListener("fetch", event => {
+            event.respondWith(
+              fetch(event.request, { cache: "no-store" })
+                .catch(() => caches.match(event.request))
+            );
+          });
+          EOF
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("web/index.html")
+          s = p.read_text(encoding="utf-8")
+
+          s = s.replace('href="./styles.css?v=0.4.1"', 'href="./styles.css?v=0.4.2"')
+          s = s.replace('src="./app.js?v=0.4.1"', 'src="./app.js?v=0.4.2"')
+          s = s.replace('href="./styles.css"', 'href="./styles.css?v=0.4.2"')
+          s = s.replace('src="./app.js"', 'src="./app.js?v=0.4.2"')
+
+          # Register SW with a versioned URL to force the browser to fetch the new script.
+          if 'navigator.serviceWorker.register' in s and 'sw.js?v=0.4.2' not in s:
+              s = s.replace('sw.js', 'sw.js?v=0.4.2')
+
+          p.write_text(s, encoding="utf-8")
+          PY
+
+          echo "Service Worker upgraded to v0.4.2."
+
+      - name: Verify fix
+        shell: bash
+        run: |
+          grep -q 'farmandeh-v0.4.2' web/sw.js
+          grep -q 'cache: "no-store"' web/sw.js
+          grep -q 'app.js?v=0.4.2' web/index.html
+          grep -q 'styles.css?v=0.4.2' web/index.html
+          grep -q 'Real Repairs Core' web/app.js
+
+          if grep -q 'farmandeh-v0.3' web/sw.js; then
+            echo "ERROR: old v0.3 cache reference still exists."
+            exit 1
+          fi
+
+          echo "v0.4 Service Worker fix verified."
+
+      - name: Commit Service Worker fix
+        shell: bash
+        run: |
+          git config user.name "Farmandeh Platform Bot"
+          git config user.email "actions@github.com"
+
+          git add web/index.html web/sw.js
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Replace old v0.3 service worker with v0.4"
+          git push
