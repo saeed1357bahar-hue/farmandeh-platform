@@ -1,6 +1,6 @@
 
 (() => {
-  const STORAGE_KEY = "farmandeh-runtime-v0.4";
+  const STORAGE_KEY = "farmandeh-runtime-V1";
   const DEFAULT = {
     version: "0.4",
     workspace: { name: "فرمانده", subtitle: "پلتفرم شخصی‌سازی‌پذیر" },
@@ -110,7 +110,7 @@
     return `${topbar()}
       <main class="page">
         <section class="hero">
-          <div class="badge">Runtime v0.4 • Real Repairs Core</div>
+          <div class="badge">Runtime V1 • Real Repairs Core</div>
           <h1>${esc(state.workspace.name)}</h1>
           <p>اولین ماژول واقعی فرمانده فعال است: تعمیرات با ثبت، ویرایش، جستجو، تایمر و ذخیره دائمی.</p>
           <div class="stats">
@@ -347,7 +347,7 @@
   function genericModule(id){
     const m=state.modules.find(x=>x.id===id);
     return `${topbar(`${m?.emoji||"◼"} ${m?.title||id}`)}
-      <main class="page"><section class="hero"><h1>${esc(m?.title||id)}</h1><p>این ماژول در v0.4 هنوز روی Runtime عمومی اجرا می‌شود. Repairs اولین Core واقعی است.</p></section></main>${bottomNav()}`;
+      <main class="page"><section class="hero"><h1>${esc(m?.title||id)}</h1><p>این ماژول در V1 هنوز روی Runtime عمومی اجرا می‌شود. Repairs اولین Core واقعی است.</p></section></main>${bottomNav()}`;
   }
 
   function render(){
@@ -478,7 +478,7 @@
     if(action==="export"){
       const blob=new Blob([JSON.stringify(state,null,2)],{type:"application/json"});
       const url=URL.createObjectURL(blob); const link=document.createElement("a");
-      link.href=url; link.download="farmandeh-v0.4-data.json"; link.click(); URL.revokeObjectURL(url);
+      link.href=url; link.download="farmandeh-V1-data.json"; link.click(); URL.revokeObjectURL(url);
     }
   });
 
