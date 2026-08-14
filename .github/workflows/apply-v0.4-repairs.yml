@@ -1,0 +1,80 @@
+name: Apply Farmandeh v0.4 Repairs Core
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find v0.4 patch
+        id: patch
+        shell: bash
+        run: |
+          PATCH=$(find . -maxdepth 1 -type f -name "Farmandeh_Runtime_v0_4_RepairsCore_Patch.zip" | head -n 1)
+
+          if [ -z "$PATCH" ]; then
+            echo "ERROR: Farmandeh_Runtime_v0_4_RepairsCore_Patch.zip not found in repository root."
+            ls -la
+            exit 1
+          fi
+
+          echo "Using patch: $PATCH"
+          echo "file=$PATCH" >> "$GITHUB_OUTPUT"
+
+      - name: Extract v0.4 patch
+        shell: bash
+        run: |
+          rm -rf .v04_patch
+          mkdir .v04_patch
+          unzip -q "${{ steps.patch.outputs.file }}" -d .v04_patch
+
+          echo "=== Patch files ==="
+          find .v04_patch -maxdepth 4 -type f | sort
+
+      - name: Apply Repairs Core files
+        shell: bash
+        run: |
+          test -f .v04_patch/web/app.js
+          test -f .v04_patch/web/styles-v0.4-append.css
+          test -f .v04_patch/platform/runtime/runtime.capabilities.json
+          test -f .v04_patch/config/runtime-version.json
+
+          cp .v04_patch/web/app.js web/app.js
+          cat .v04_patch/web/styles-v0.4-append.css >> web/styles.css
+          cp .v04_patch/platform/runtime/runtime.capabilities.json platform/runtime/runtime.capabilities.json
+          cp .v04_patch/config/runtime-version.json config/runtime-version.json
+
+          rm -rf .v04_patch
+
+      - name: Verify v0.4 Repairs Core
+        shell: bash
+        run: |
+          grep -q "Real Repairs Core" web/app.js
+          grep -q "repairs-crud" platform/runtime/runtime.capabilities.json
+          grep -q '"version": "0.4"' config/runtime-version.json
+
+          echo "Farmandeh v0.4 Repairs Core verified."
+
+      - name: Commit v0.4
+        shell: bash
+        run: |
+          git config user.name "Farmandeh Platform Bot"
+          git config user.email "actions@github.com"
+
+          git add             web/app.js             web/styles.css             platform/runtime/runtime.capabilities.json             config/runtime-version.json
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Apply Farmandeh v0.4 Repairs Core"
+          git push
