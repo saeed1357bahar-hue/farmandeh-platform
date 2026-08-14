@@ -1,0 +1,66 @@
+name: Farmandeh v1 Foundation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  foundation:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify current platform
+        shell: bash
+        run: |
+          set -e
+
+          echo "Checking Farmandeh Platform..."
+
+          test -d web
+          test -f web/index.html
+          test -f web/app.js
+          test -f web/styles.css
+
+          echo "Current web platform verified."
+
+      - name: Create v1 foundation marker
+        shell: bash
+        run: |
+          cat > web/farmandeh-v1.json <<'EOF'
+          {
+            "product": "Farmandeh",
+            "version": "1.0.0",
+            "codename": "Foundation",
+            "architecture": "Modular Personal Operating System",
+            "status": "foundation-ready"
+          }
+          EOF
+
+      - name: Verify v1 marker
+        shell: bash
+        run: |
+          test -f web/farmandeh-v1.json
+          grep -q '"version": "1.0.0"' web/farmandeh-v1.json
+
+          echo "Farmandeh v1 Foundation verified."
+
+      - name: Commit foundation
+        shell: bash
+        run: |
+          git config user.name "Farmandeh Platform Bot"
+          git config user.email "actions@github.com"
+
+          git add web/farmandeh-v1.json
+
+          if git diff --cached --quiet; then
+            echo "Foundation already exists."
+            exit 0
+          fi
+
+          git commit -m "Initialize Farmandeh v1 Foundation"
+          git push
