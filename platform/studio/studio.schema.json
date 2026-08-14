@@ -1,0 +1,21 @@
+{
+  "version": "0.3",
+  "editable": [
+    "workspace.name",
+    "workspace.subtitle",
+    "theme.mode",
+    "theme.accent",
+    "theme.radius",
+    "theme.density",
+    "modules[].title",
+    "modules[].visible",
+    "modules[] order"
+  ],
+  "persistence": "localStorage",
+  "future": [
+    "field-builder",
+    "workflow-builder",
+    "permission-editor",
+    "data-source-editor"
+  ]
+}

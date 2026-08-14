@@ -1,0 +1,11 @@
+{
+  "name": "Farmandeh Platform Runtime",
+  "short_name": "Farmandeh",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#0b1020",
+  "theme_color": "#111827",
+  "lang": "fa",
+  "dir": "rtl"
+}

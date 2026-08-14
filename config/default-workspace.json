@@ -1,0 +1,57 @@
+{
+  "version": "0.3",
+  "workspace": {
+    "name": "فرمانده",
+    "subtitle": "پلتفرم شخصی‌سازی‌پذیر"
+  },
+  "theme": {
+    "mode": "dark",
+    "accent": "#7c3aed",
+    "radius": 18,
+    "density": "comfortable"
+  },
+  "modules": [
+    {
+      "id": "repairs",
+      "title": "تعمیرات",
+      "emoji": "🛠️",
+      "description": "پذیرش، عیب‌یابی، تعمیر، خروج و سوابق",
+      "visible": true
+    },
+    {
+      "id": "customers",
+      "title": "مشتریان",
+      "emoji": "👥",
+      "description": "پروفایل مشتری، دستگاه‌ها و تاریخچه ارتباط",
+      "visible": true
+    },
+    {
+      "id": "inventory",
+      "title": "انبار قطعات",
+      "emoji": "📦",
+      "description": "قطعات، موجودی، تامین‌کننده و قیمت",
+      "visible": true
+    },
+    {
+      "id": "tasks",
+      "title": "کارها و برنامه",
+      "emoji": "✅",
+      "description": "وظایف، تایمر، اولویت و گزارش روزانه",
+      "visible": true
+    },
+    {
+      "id": "forum",
+      "title": "انجمن",
+      "emoji": "💬",
+      "description": "موضوعات، گفتگوها و دانش جمعی",
+      "visible": true
+    },
+    {
+      "id": "sales",
+      "title": "فروش",
+      "emoji": "🛒",
+      "description": "محصولات، مقایسه و سفارش‌ها",
+      "visible": true
+    }
+  ]
+}

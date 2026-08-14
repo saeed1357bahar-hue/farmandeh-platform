@@ -1,0 +1,28 @@
+{
+  "version": "0.3",
+  "implemented": [
+    "command-center",
+    "module-routing",
+    "back-to-command-center",
+    "safe-area",
+    "rtl",
+    "theme-switch",
+    "accent-color",
+    "card-radius",
+    "density",
+    "module-rename",
+    "module-reorder",
+    "module-visibility",
+    "local-persistence",
+    "json-export",
+    "pwa-cache"
+  ],
+  "next": [
+    "data-engine",
+    "server-sync",
+    "auth",
+    "role-permissions",
+    "form-builder",
+    "workflow-automation"
+  ]
+}
