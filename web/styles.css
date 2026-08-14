@@ -123,3 +123,10 @@ button{cursor:pointer}
   .page{padding-inline:24px}
   .bottom-nav{left:50%;right:auto;transform:translateX(-50%);width:420px;border:1px solid var(--border);border-bottom:0;border-radius:18px 18px 0 0}
 }
+
+textarea{
+  width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);outline:none;resize:vertical;font:inherit
+}
+.row.clickable{cursor:pointer}
+.row.clickable:active{transform:scale(.992)}

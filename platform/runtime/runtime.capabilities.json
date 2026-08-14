@@ -1,28 +1,28 @@
 {
-  "version": "0.3",
+  "version": "0.4",
   "implemented": [
-    "command-center",
-    "module-routing",
-    "back-to-command-center",
-    "safe-area",
-    "rtl",
-    "theme-switch",
-    "accent-color",
-    "card-radius",
-    "density",
-    "module-rename",
-    "module-reorder",
-    "module-visibility",
-    "local-persistence",
-    "json-export",
-    "pwa-cache"
+    "repairs-crud",
+    "repair-search",
+    "repair-status-workflow",
+    "repair-timer",
+    "repair-finance-fields",
+    "repair-return-flag",
+    "repair-history-persistence",
+    "command-center-repair-kpis",
+    "studio-theme",
+    "studio-module-rename",
+    "studio-module-visibility",
+    "studio-module-reorder",
+    "json-export"
   ],
+  "storage": "localStorage",
   "next": [
-    "data-engine",
+    "customers-core",
+    "inventory-core",
+    "repair-part-transactions",
     "server-sync",
     "auth",
-    "role-permissions",
-    "form-builder",
-    "workflow-automation"
+    "roles",
+    "attachments"
   ]
 }
