@@ -1,0 +1,78 @@
+name: Upgrade Farmandeh Platform v0.4
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Upgrade to v0.4
+        shell: bash
+        run: |
+          set -e
+
+          echo "Starting Farmandeh Platform v0.4 upgrade..."
+
+          if [ ! -d "web" ]; then
+            echo "ERROR: web directory not found."
+            exit 1
+          fi
+
+          mkdir -p web/data
+          mkdir -p web/assets
+          mkdir -p web/modules
+          mkdir -p web/runtime
+
+          cat > web/runtime/version.json <<'EOF'
+          {
+            "version": "0.4",
+            "name": "Farmandeh Platform",
+            "edition": "Modular Personal Operating System",
+            "stage": "v0.4",
+            "localFirst": true
+          }
+          EOF
+
+          cat > web/data/platform.json <<'EOF'
+          {
+            "platform": "Farmandeh",
+            "version": "0.4",
+            "modules": [
+              "repairs",
+              "customers",
+              "inventory",
+              "tasks",
+              "forum",
+              "sales",
+              "knowledge",
+              "training",
+              "reports",
+              "team"
+            ]
+          }
+          EOF
+
+          echo "Farmandeh v0.4 structure created."
+
+      - name: Commit v0.4
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add web/
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Upgrade Farmandeh Platform to v0.4"
+            git push
+          fi
