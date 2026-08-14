@@ -130,3 +130,10 @@ textarea{
 }
 .row.clickable{cursor:pointer}
 .row.clickable:active{transform:scale(.992)}
+
+textarea{
+  width:100%;padding:11px 12px;border-radius:12px;border:1px solid var(--border);
+  background:var(--surface-2);color:var(--text);outline:none;resize:vertical;font:inherit
+}
+.row.clickable{cursor:pointer}
+.row.clickable:active{transform:scale(.992)}
