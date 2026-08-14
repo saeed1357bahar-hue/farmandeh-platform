@@ -1,0 +1,16 @@
+{
+  "workspace": {
+    "id": "uuid",
+    "name": "string",
+    "templateKey": "string",
+    "themeKey": "string",
+    "createdAt": "datetime"
+  },
+  "membership": {
+    "workspaceId": "uuid",
+    "userId": "uuid",
+    "roleIds": [
+      "uuid"
+    ]
+  }
+}

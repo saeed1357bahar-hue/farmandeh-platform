@@ -1,0 +1,18 @@
+{
+  "roles": [
+    {
+      "key": "admin",
+      "permissions": [
+        "*"
+      ]
+    },
+    {
+      "key": "technician",
+      "permissions": [
+        "repairs.view",
+        "repairs.edit_assigned",
+        "inventory.view"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,27 @@
+{
+  "key": "command-center",
+  "title": "Command Center",
+  "route": "/dashboard",
+  "scrollable": true,
+  "editable": true,
+  "components": [
+    {
+      "id": "missions",
+      "type": "list",
+      "source": "tasks",
+      "editable": true
+    },
+    {
+      "id": "repairs",
+      "type": "metric",
+      "source": "repairs.open",
+      "editable": true
+    },
+    {
+      "id": "low_stock",
+      "type": "list",
+      "source": "inventory.low_stock",
+      "editable": true
+    }
+  ]
+}

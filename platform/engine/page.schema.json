@@ -1,0 +1,32 @@
+{
+  "$id": "farmandeh.page",
+  "type": "object",
+  "required": [
+    "key",
+    "title",
+    "route",
+    "components"
+  ],
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    "title": {
+      "type": "string"
+    },
+    "route": {
+      "type": "string"
+    },
+    "scrollable": {
+      "type": "boolean",
+      "default": true
+    },
+    "editable": {
+      "type": "boolean",
+      "default": true
+    },
+    "components": {
+      "type": "array"
+    }
+  }
+}

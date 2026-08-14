@@ -1,0 +1,29 @@
+{
+  "version": 1,
+  "editors": [
+    "page_builder",
+    "form_builder",
+    "field_editor",
+    "dashboard_builder",
+    "theme_editor",
+    "module_manager",
+    "workflow_builder",
+    "role_permission_editor",
+    "navigation_editor",
+    "template_manager"
+  ],
+  "operations": [
+    "create",
+    "edit",
+    "duplicate",
+    "reorder",
+    "hide",
+    "show",
+    "enable",
+    "disable",
+    "export",
+    "import",
+    "version",
+    "rollback"
+  ]
+}

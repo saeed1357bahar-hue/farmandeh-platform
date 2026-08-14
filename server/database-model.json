@@ -1,0 +1,20 @@
+{
+  "tables": [
+    "users",
+    "workspaces",
+    "workspace_members",
+    "roles",
+    "permissions",
+    "role_permissions",
+    "entity_definitions",
+    "records",
+    "modules",
+    "pages",
+    "forms",
+    "workflows",
+    "themes",
+    "templates",
+    "configuration_versions",
+    "audit_logs"
+  ]
+}

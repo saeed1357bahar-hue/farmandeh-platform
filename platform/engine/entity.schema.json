@@ -1,0 +1,77 @@
+{
+  "$id": "farmandeh.entity",
+  "type": "object",
+  "required": [
+    "key",
+    "name",
+    "version",
+    "fields"
+  ],
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "integer",
+      "minimum": 1
+    },
+    "workspaceScoped": {
+      "type": "boolean",
+      "default": true
+    },
+    "fields": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "key",
+          "label",
+          "type"
+        ],
+        "properties": {
+          "key": {
+            "type": "string"
+          },
+          "label": {
+            "type": "string"
+          },
+          "type": {
+            "enum": [
+              "text",
+              "number",
+              "boolean",
+              "date",
+              "datetime",
+              "select",
+              "multiselect",
+              "relation",
+              "file",
+              "image",
+              "json",
+              "money"
+            ]
+          },
+          "required": {
+            "type": "boolean"
+          },
+          "visible": {
+            "type": "boolean"
+          },
+          "editable": {
+            "type": "boolean"
+          },
+          "searchable": {
+            "type": "boolean"
+          },
+          "sortable": {
+            "type": "boolean"
+          },
+          "default": {}
+        }
+      }
+    }
+  }
+}

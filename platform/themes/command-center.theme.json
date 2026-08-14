@@ -1,0 +1,13 @@
+{
+  "key": "command-center",
+  "name": "Command Center",
+  "tokens": {
+    "mode": "dark",
+    "radius": 16,
+    "density": "comfortable",
+    "motion": "normal",
+    "fontFamily": "system",
+    "safeArea": true
+  },
+  "editable": true
+}

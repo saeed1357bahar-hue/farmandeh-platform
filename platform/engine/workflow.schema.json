@@ -1,0 +1,26 @@
+{
+  "$id": "farmandeh.workflow",
+  "type": "object",
+  "required": [
+    "key",
+    "trigger",
+    "actions"
+  ],
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    "trigger": {
+      "type": "object"
+    },
+    "conditions": {
+      "type": "array"
+    },
+    "actions": {
+      "type": "array"
+    },
+    "enabled": {
+      "type": "boolean"
+    }
+  }
+}

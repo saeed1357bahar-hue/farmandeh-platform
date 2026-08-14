@@ -1,0 +1,14 @@
+{
+  "name": "Farmandeh Platform",
+  "version": "0.2.0-foundation",
+  "architecture": "metadata-driven-multi-tenant",
+  "kernelStable": true,
+  "studioFirst": true,
+  "serverReady": true,
+  "multiUser": true,
+  "replaceableModules": true,
+  "replaceablePages": true,
+  "templates": [
+    "repair-shop"
+  ]
+}

@@ -1,0 +1,35 @@
+{
+  "$id": "farmandeh.module",
+  "type": "object",
+  "required": [
+    "key",
+    "name",
+    "version"
+  ],
+  "properties": {
+    "key": {
+      "type": "string"
+    },
+    "name": {
+      "type": "string"
+    },
+    "version": {
+      "type": "string"
+    },
+    "enabled": {
+      "type": "boolean"
+    },
+    "dependencies": {
+      "type": "array"
+    },
+    "entities": {
+      "type": "array"
+    },
+    "pages": {
+      "type": "array"
+    },
+    "permissions": {
+      "type": "array"
+    }
+  }
+}

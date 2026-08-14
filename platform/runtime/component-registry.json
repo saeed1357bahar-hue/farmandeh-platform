@@ -1,0 +1,99 @@
+{
+  "components": [
+    {
+      "type": "text",
+      "editableProps": [
+        "text",
+        "font",
+        "size",
+        "weight",
+        "alignment"
+      ]
+    },
+    {
+      "type": "button",
+      "editableProps": [
+        "label",
+        "icon",
+        "action",
+        "style",
+        "visibility"
+      ]
+    },
+    {
+      "type": "card",
+      "editableProps": [
+        "padding",
+        "radius",
+        "shadow",
+        "background",
+        "layout"
+      ]
+    },
+    {
+      "type": "list",
+      "editableProps": [
+        "source",
+        "fields",
+        "sort",
+        "filter",
+        "emptyState"
+      ]
+    },
+    {
+      "type": "table",
+      "editableProps": [
+        "source",
+        "columns",
+        "sort",
+        "filter",
+        "pagination"
+      ]
+    },
+    {
+      "type": "form",
+      "editableProps": [
+        "entity",
+        "fields",
+        "layout",
+        "validation",
+        "actions"
+      ]
+    },
+    {
+      "type": "metric",
+      "editableProps": [
+        "source",
+        "aggregation",
+        "label",
+        "format"
+      ]
+    },
+    {
+      "type": "tabs",
+      "editableProps": [
+        "items",
+        "order",
+        "visibility"
+      ]
+    },
+    {
+      "type": "container",
+      "editableProps": [
+        "layout",
+        "spacing",
+        "background",
+        "border"
+      ]
+    },
+    {
+      "type": "image",
+      "editableProps": [
+        "source",
+        "fit",
+        "radius",
+        "visibility"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,57 @@
+{
+  "key": "repair",
+  "name": "Repair",
+  "version": 1,
+  "workspaceScoped": true,
+  "fields": [
+    {
+      "key": "repairNo",
+      "label": "Repair No",
+      "type": "text",
+      "required": true,
+      "editable": true
+    },
+    {
+      "key": "customer",
+      "label": "Customer",
+      "type": "relation",
+      "required": true,
+      "editable": true
+    },
+    {
+      "key": "vehicle",
+      "label": "Vehicle",
+      "type": "relation",
+      "required": false,
+      "editable": true
+    },
+    {
+      "key": "device",
+      "label": "Device",
+      "type": "text",
+      "required": true,
+      "editable": true
+    },
+    {
+      "key": "fault",
+      "label": "Fault",
+      "type": "text",
+      "required": true,
+      "editable": true
+    },
+    {
+      "key": "status",
+      "label": "Status",
+      "type": "select",
+      "required": true,
+      "editable": true
+    },
+    {
+      "key": "technician",
+      "label": "Technician",
+      "type": "relation",
+      "required": false,
+      "editable": true
+    }
+  ]
+}

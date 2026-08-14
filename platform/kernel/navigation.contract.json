@@ -1,0 +1,12 @@
+{
+  "version": 1,
+  "rules": [
+    "Global navigation is controlled only by Kernel",
+    "System Back first pops current route stack",
+    "Back at module root returns to Command Center",
+    "Back at Command Center exits normally",
+    "Module tabs preserve state",
+    "Safe area is mandatory",
+    "RTL is first-class"
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "key": "repair-shop",
+  "name": "Repair Shop",
+  "version": "0.1.0",
+  "modules": [
+    "crm",
+    "repairs",
+    "inventory",
+    "finance",
+    "tasks"
+  ],
+  "homePage": "command-center",
+  "theme": "command-center",
+  "cloneable": true,
+  "editable": true
+}
