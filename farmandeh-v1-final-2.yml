@@ -1,0 +1,153 @@
+name: Farmandeh V1 Final
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Locate web application
+        id: locate
+        shell: bash
+        run: |
+          echo "Searching for Farmandeh web application..."
+
+          APP_JS=$(find . -type f -name "app.js" | head -n 1)
+
+          if [ -z "$APP_JS" ]; then
+            echo "ERROR: app.js not found"
+            find . -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          WEB_DIR=$(dirname "$APP_JS")
+
+          echo "Found app.js: $APP_JS"
+          echo "Web directory: $WEB_DIR"
+          echo "webdir=$WEB_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Create Farmandeh V1 marker
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          cat > "$WEB_DIR/version.json" <<'EOF'
+          {
+            "product": "Farmandeh Saeed",
+            "version": "1.0.0",
+            "codename": "Foundation",
+            "runtime": "Farmandeh V1",
+            "architecture": "Modular Personal Operating System"
+          }
+          EOF
+
+      - name: Upgrade runtime label
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+          APP="$WEB_DIR/app.js"
+
+          python3 - "$APP" <<'PY'
+          from pathlib import Path
+          import sys
+          import re
+
+          path = Path(sys.argv[1])
+          text = path.read_text(encoding="utf-8")
+
+          replacements = [
+              ("Runtime v0.3", "Farmandeh V1"),
+              ("Runtime v0.4", "Farmandeh V1"),
+              ("v0.3", "V1"),
+              ("v0.4", "V1"),
+              ("Real Repairs Core", "Modular Operating System")
+          ]
+
+          for old, new in replacements:
+              text = text.replace(old, new)
+
+          path.write_text(text, encoding="utf-8")
+          print("Runtime labels upgraded.")
+          PY
+
+      - name: Remove old service worker registrations
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          find "$WEB_DIR" -type f \( -name "*.html" -o -name "*.js" \) -print0 |
+          while IFS= read -r -d '' file; do
+            sed -i \
+              -e '/navigator\.serviceWorker\.register/d' \
+              -e '/serviceWorker\.register/d' \
+              "$file" || true
+          done
+
+          rm -f "$WEB_DIR/sw.js"
+          rm -f "$WEB_DIR/service-worker.js"
+
+      - name: Add cache reset
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+          INDEX="$WEB_DIR/index.html"
+
+          if [ -f "$INDEX" ]; then
+            python3 - "$INDEX" <<'PY'
+          from pathlib import Path
+          import sys
+
+          path = Path(sys.argv[1])
+          text = path.read_text(encoding="utf-8")
+
+          reset_script = """
+          <script>
+          (async function () {
+            try {
+              if ('serviceWorker' in navigator) {
+                const regs = await navigator.serviceWorker.getRegistrations();
+                for (const reg of regs) {
+                  await reg.unregister();
+                }
+              }
+
+              if ('caches' in window) {
+                const keys = await caches.keys();
+                await Promise.all(keys.map(key => caches.delete(key)));
+              }
+            } catch (e) {
+              console.log('Farmandeh cache reset:', e);
+            }
+          })();
+          </script>
+          """
+
+          if "Farmandeh cache reset" not in text:
+              text = text.replace("</head>", reset_script + "\n</head>")
+
+          path.write_text(text, encoding="utf-8")
+          PY
+          fi
+
+      - name: Commit Farmandeh V1
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Upgrade Farmandeh to V1 foundation"
+            git push
+          fi
