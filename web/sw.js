@@ -1,3 +1,4 @@
+// Farmandeh cache bust v0.4.1
 
 const CACHE="farmandeh-v0.3";
 const ASSETS=["./","./index.html","./styles.css","./app.js","./manifest.webmanifest"];
