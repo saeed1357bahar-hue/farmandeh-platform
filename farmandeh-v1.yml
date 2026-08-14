@@ -1,0 +1,247 @@
+name: Build Farmandeh v1 Foundation
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build-v1:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Locate web application
+        id: locate
+        shell: bash
+        run: |
+          echo "Searching for Farmandeh web application..."
+
+          APP_JS=$(find . -type f -name "app.js" | head -n 1)
+
+          if [ -z "$APP_JS" ]; then
+            echo "ERROR: app.js not found"
+            find . -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          WEB_DIR=$(dirname "$APP_JS")
+
+          echo "Found app.js: $APP_JS"
+          echo "Web directory: $WEB_DIR"
+          echo "webdir=$WEB_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Create Farmandeh v1 marker
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          cat > "$WEB_DIR/version.json" <<'EOF'
+          {
+            "product": "Farmandeh Saeed",
+            "version": "1.0.0",
+            "codename": "Foundation",
+            "runtime": "Farmandeh v1",
+            "architecture": "Modular Personal Operating System"
+          }
+          EOF
+
+      - name: Upgrade runtime label
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+          APP="$WEB_DIR/app.js"
+
+          python3 <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          web = Path(os.environ["WEB_DIR"])
+          app = web / "app.js"
+
+          text = app.read_text(encoding="utf-8")
+
+          text = re.sub(
+              r'Runtime v0\.[0-9]+(?:\s*•\s*[^<`"\']*)?',
+              'Farmandeh v1 • Foundation',
+              text
+          )
+
+          text = text.replace(
+              'اولین ماژول واقعی فرمانده فعال است',
+              'نسخه پایه سیستم‌عامل شخصی فرمانده فعال است'
+          )
+
+          app.write_text(text, encoding="utf-8")
+          PY
+        env:
+          WEB_DIR: ${{ steps.locate.outputs.webdir }}
+
+      - name: Add v1 foundation stylesheet
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          cat > "$WEB_DIR/farmandeh-v1.css" <<'EOF'
+          :root {
+            --fm-safe-top: env(safe-area-inset-top, 0px);
+            --fm-safe-bottom: env(safe-area-inset-bottom, 0px);
+            --fm-card-radius: 22px;
+            --fm-gap: 14px;
+          }
+
+          html {
+            scroll-behavior: smooth;
+          }
+
+          body {
+            padding-top: var(--fm-safe-top);
+            padding-bottom: var(--fm-safe-bottom);
+            overscroll-behavior-y: contain;
+          }
+
+          .page {
+            min-height: 100dvh;
+          }
+
+          .card,
+          .hero,
+          .module-card {
+            border-radius: var(--fm-card-radius);
+          }
+
+          .bottom-nav {
+            padding-bottom: var(--fm-safe-bottom);
+          }
+
+          .farmandeh-v1-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 6px 10px;
+            border: 1px solid currentColor;
+            border-radius: 999px;
+            font-size: 12px;
+            opacity: .8;
+          }
+          EOF
+
+      - name: Attach v1 stylesheet
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+          INDEX="$WEB_DIR/index.html"
+
+          if [ ! -f "$INDEX" ]; then
+            echo "ERROR: index.html not found in $WEB_DIR"
+            exit 1
+          fi
+
+          if ! grep -q "farmandeh-v1.css" "$INDEX"; then
+            sed -i 's#</head>#  <link rel="stylesheet" href="./farmandeh-v1.css?v=1.0.0">\n</head>#' "$INDEX"
+          fi
+
+      - name: Disable stale service worker caches
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          find "$WEB_DIR" -maxdepth 2 -type f \
+            \( -name "sw.js" -o -name "service-worker.js" \) \
+            -print -delete || true
+
+          INDEX="$WEB_DIR/index.html"
+
+          python3 <<'PY'
+          from pathlib import Path
+          import os
+          import re
+
+          index = Path(os.environ["INDEX"])
+
+          if index.exists():
+              text = index.read_text(encoding="utf-8")
+
+              text = re.sub(
+                  r'<script[^>]*>[^<]*serviceWorker[^<]*</script>',
+                  '',
+                  text,
+                  flags=re.I | re.S
+              )
+
+              index.write_text(text, encoding="utf-8")
+          PY
+        env:
+          INDEX: ${{ steps.locate.outputs.webdir }}/index.html
+
+      - name: Create architecture manifest
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          cat > "$WEB_DIR/farmandeh.manifest.json" <<'EOF'
+          {
+            "version": "1.0.0",
+            "modules": [
+              "repairs",
+              "customers",
+              "inventory",
+              "tasks",
+              "forum",
+              "sales"
+            ],
+            "foundation": {
+              "localStorage": true,
+              "safeArea": true,
+              "scrollingPages": true,
+              "themeEngine": true,
+              "studio": true,
+              "modularNavigation": true,
+              "serverReady": true,
+              "multiUserReady": true
+            },
+            "nextModules": [
+              "finance",
+              "knowledge",
+              "training",
+              "reports",
+              "permissions",
+              "cloudSync"
+            ]
+          }
+          EOF
+
+      - name: Show changed files
+        shell: bash
+        run: |
+          echo "=== FARMANDEH V1 CHANGES ==="
+          git status --short
+          echo
+          echo "=== WEB FILES ==="
+          find "${{ steps.locate.outputs.webdir }}" -maxdepth 2 -type f | sort
+
+      - name: Commit Farmandeh v1
+        shell: bash
+        run: |
+          git config user.name "farmandeh-actions"
+          git config user.email "actions@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes detected."
+            exit 0
+          fi
+
+          git commit -m "Farmandeh v1 Foundation"
+          git push origin main
+
+      - name: Complete
+        run: |
+          echo "======================================"
+          echo " FARMANDEH V1 FOUNDATION INSTALLED"
+          echo "======================================"
