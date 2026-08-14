@@ -1,0 +1,79 @@
+name: Apply Farmandeh Runtime v0.3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  apply-runtime:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Find Runtime v0.3 patch
+        id: patch
+        shell: bash
+        run: |
+          PATCH=$(find . -maxdepth 1 -type f -name "Farmandeh_Platform_Runtime_v0_3_Patch.zip" | head -n 1)
+          if [ -z "$PATCH" ]; then
+            echo "ERROR: Runtime v0.3 patch ZIP not found in repository root."
+            ls -la
+            exit 1
+          fi
+          echo "Using patch: $PATCH"
+          echo "file=$PATCH" >> "$GITHUB_OUTPUT"
+
+      - name: Extract Runtime patch
+        shell: bash
+        run: |
+          rm -rf .runtime_patch
+          mkdir .runtime_patch
+          unzip -q "${{ steps.patch.outputs.file }}" -d .runtime_patch
+
+          echo "=== Patch files ==="
+          find .runtime_patch -maxdepth 4 -type f | sort
+
+          rsync -av             --exclude=".git"             --exclude="APPLY_PATCH_WORKFLOW.yml"             --exclude=".github/workflows/deploy-web.yml"             .runtime_patch/ ./
+
+          rm -rf .runtime_patch
+
+      - name: Ensure workflow files are untouched
+        shell: bash
+        run: |
+          rm -f .github/workflows/deploy-web.yml
+          echo "Deploy workflow intentionally excluded from this runtime commit."
+
+      - name: Verify Runtime v0.3 files
+        shell: bash
+        run: |
+          test -f web/index.html
+          test -f web/app.js
+          test -f web/styles.css
+          test -f web/manifest.webmanifest
+          test -f web/sw.js
+          test -f platform/runtime/runtime.capabilities.json
+          test -f platform/studio/studio.schema.json
+          test -f config/default-workspace.json
+
+          grep -q "Runtime v0.3" web/index.html
+          echo "Runtime v0.3 files verified."
+
+      - name: Commit Runtime v0.3
+        shell: bash
+        run: |
+          git config user.name "Farmandeh Platform Bot"
+          git config user.email "actions@github.com"
+
+          git add web platform/runtime platform/studio config docs RUNTIME_v0_3_README.md 2>/dev/null || true
+
+          if git diff --cached --quiet; then
+            echo "No runtime changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Apply Farmandeh Runtime v0.3"
+          git push
