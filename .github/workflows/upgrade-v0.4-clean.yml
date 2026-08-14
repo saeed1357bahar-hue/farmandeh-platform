@@ -1,0 +1,14 @@
+name: Upgrade Farmandeh Platform v0.4
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Verify workflow
+        run: echo "Farmandeh v0.4 workflow is active"
