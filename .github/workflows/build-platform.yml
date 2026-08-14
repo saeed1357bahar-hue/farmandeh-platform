@@ -1,0 +1,66 @@
+name: Expand Farmandeh Platform Repository
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  expand:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Verify source package
+        shell: bash
+        run: |
+          ZIP_FILE="Farmandeh_Platform_Repository_Ready_v0_2.zip"
+
+          if [ ! -f "$ZIP_FILE" ]; then
+            echo "ERROR: $ZIP_FILE not found."
+            ls -la
+            exit 1
+          fi
+
+          echo "Using: $ZIP_FILE"
+
+      - name: Extract platform files
+        shell: bash
+        run: |
+          rm -rf .farmandeh_extract
+          mkdir .farmandeh_extract
+
+          unzip -q \
+            "Farmandeh_Platform_Repository_Ready_v0_2.zip" \
+            -d .farmandeh_extract
+
+          echo "=== Extracted files ==="
+          find .farmandeh_extract -maxdepth 4 -type f | sort
+
+      - name: Install files into repository
+        shell: bash
+        run: |
+          rsync -av \
+            --exclude=".git" \
+            .farmandeh_extract/ ./
+
+          rm -rf .farmandeh_extract
+
+      - name: Commit expanded platform
+        shell: bash
+        run: |
+          git config user.name "Farmandeh Platform Bot"
+          git config user.email "actions@github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No new files to commit."
+            exit 0
+          fi
+
+          git commit -m "Expand Farmandeh Platform Foundation v0.2"
+          git push
