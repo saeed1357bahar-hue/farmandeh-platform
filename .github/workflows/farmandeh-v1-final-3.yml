@@ -1,0 +1,129 @@
+name: Farmandeh V1 Final 3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  upgrade:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Locate web application
+        id: locate
+        shell: bash
+        run: |
+          APP_JS=$(find . -type f -name "app.js" | head -n 1)
+
+          if [ -z "$APP_JS" ]; then
+            echo "ERROR: app.js not found"
+            echo "Repository files:"
+            find . -maxdepth 4 -type f | sort
+            exit 1
+          fi
+
+          WEB_DIR=$(dirname "$APP_JS")
+
+          echo "Found app.js: $APP_JS"
+          echo "Web directory: $WEB_DIR"
+          echo "webdir=$WEB_DIR" >> "$GITHUB_OUTPUT"
+
+      - name: Create V1 marker
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          cat > "$WEB_DIR/version.json" <<'EOF'
+          {
+            "product": "Farmandeh Saeed",
+            "version": "1.0.0",
+            "codename": "Foundation",
+            "runtime": "Farmandeh V1",
+            "architecture": "Modular Personal Operating System"
+          }
+          EOF
+
+      - name: Upgrade runtime label
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+          APP="$WEB_DIR/app.js"
+
+          python3 - "$APP" <<'PY'
+          from pathlib import Path
+          import sys
+          import re
+
+          app = Path(sys.argv[1])
+          text = app.read_text(encoding="utf-8")
+
+          replacements = [
+              ("Farmandeh Runtime v0.3", "Farmandeh V1"),
+              ("Farmandeh v0.4", "Farmandeh V1"),
+              ("Runtime v0.3", "Farmandeh V1"),
+              ("v0.4", "V1"),
+          ]
+
+          for old, new in replacements:
+              text = text.replace(old, new)
+
+          app.write_text(text, encoding="utf-8")
+          print("Runtime upgraded:", app)
+          PY
+
+      - name: Update service worker cache
+        shell: bash
+        run: |
+          WEB_DIR="${{ steps.locate.outputs.webdir }}"
+
+          if [ -f "$WEB_DIR/sw.js" ]; then
+            python3 - "$WEB_DIR/sw.js" <<'PY'
+          from pathlib import Path
+          import sys
+          import re
+
+          sw = Path(sys.argv[1])
+          text = sw.read_text(encoding="utf-8")
+
+          text = re.sub(
+              r'(["\x27])farmandeh[^"\x27]*cache[^"\x27]*\1',
+              '"farmandeh-v1-final-3"',
+              text,
+              flags=re.I
+          )
+
+          sw.write_text(text, encoding="utf-8")
+          print("Service worker cache updated:", sw)
+          PY
+          else
+            echo "No sw.js found - skipped"
+          fi
+
+      - name: Commit V1 upgrade
+        shell: bash
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+
+          git add -A
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+          else
+            git commit -m "Upgrade Farmandeh to V1 Final 3"
+            git push
+          fi
+
+      - name: Final verification
+        shell: bash
+        run: |
+          echo "================================="
+          echo "FARMANDEH V1 FINAL 3 COMPLETED"
+          echo "================================="
+          echo "Branch: $GITHUB_REF_NAME"
+          echo "Commit: $GITHUB_SHA"
