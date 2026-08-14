@@ -1,0 +1,68 @@
+name: Fix Farmandeh v0.4 Cache
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  fix-cache:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Cache-bust v0.4 assets
+        shell: bash
+        run: |
+          set -e
+
+          test -f web/index.html
+          test -f web/app.js
+          test -f web/styles.css
+          test -f web/sw.js
+
+          python3 - <<'PY'
+          from pathlib import Path
+
+          p = Path("web/index.html")
+          s = p.read_text(encoding="utf-8")
+          s = s.replace('href="./styles.css"', 'href="./styles.css?v=0.4.1"')
+          s = s.replace('src="./app.js"', 'src="./app.js?v=0.4.1"')
+          p.write_text(s, encoding="utf-8")
+
+          sw = Path("web/sw.js")
+          t = sw.read_text(encoding="utf-8")
+          marker = "// Farmandeh cache bust v0.4.1"
+          if marker not in t:
+              t = marker + "\n" + t
+          sw.write_text(t, encoding="utf-8")
+          PY
+
+          echo "Cache-busting applied."
+
+      - name: Verify
+        shell: bash
+        run: |
+          grep -q 'app.js?v=0.4.1' web/index.html
+          grep -q 'styles.css?v=0.4.1' web/index.html
+          grep -q 'Farmandeh cache bust v0.4.1' web/sw.js
+          grep -q 'Real Repairs Core' web/app.js
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          git config user.name "Farmandeh Platform Bot"
+          git config user.email "actions@github.com"
+
+          git add web/index.html web/sw.js
+
+          if git diff --cached --quiet; then
+            echo "No changes to commit."
+            exit 0
+          fi
+
+          git commit -m "Fix v0.4 browser cache"
+          git push
