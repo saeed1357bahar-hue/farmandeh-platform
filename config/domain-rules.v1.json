@@ -1,0 +1,110 @@
+{
+  "version": "1.0.0",
+  "relations": {
+    "customerVehicles": {
+      "from": "customers",
+      "to": "vehicles",
+      "type": "one-to-many"
+    },
+    "customerRepairs": {
+      "from": "customers",
+      "to": "repairs",
+      "type": "one-to-many"
+    },
+    "vehicleDevices": {
+      "from": "vehicles",
+      "to": "devices",
+      "type": "one-to-many"
+    },
+    "deviceRepairs": {
+      "from": "devices",
+      "to": "repairs",
+      "type": "one-to-many"
+    },
+    "repairParts": {
+      "from": "repairs",
+      "to": "inventory",
+      "type": "many-to-many",
+      "through": "inventoryTransactions"
+    }
+  },
+
+  "repairWorkflow": {
+    "initialStatus": "intake",
+    "statuses": [
+      "intake",
+      "diagnosis",
+      "repairing",
+      "testing",
+      "ready",
+      "delivered",
+      "cancelled"
+    ],
+    "transitions": {
+      "intake": ["diagnosis", "cancelled"],
+      "diagnosis": ["repairing", "cancelled"],
+      "repairing": ["testing", "diagnosis"],
+      "testing": ["repairing", "ready"],
+      "ready": ["delivered", "repairing"],
+      "delivered": [],
+      "cancelled": []
+    }
+  },
+
+  "inventoryRules": {
+    "consumePart": {
+      "action": "decreaseQuantity",
+      "createTransaction": true,
+      "transactionType": "consume"
+    },
+    "returnPart": {
+      "action": "increaseQuantity",
+      "createTransaction": true,
+      "transactionType": "return"
+    },
+    "lowStock": {
+      "condition": "quantity <= minimumStock",
+      "notification": true
+    }
+  },
+
+  "financeRules": {
+    "totalAmount": "laborAmount + partsAmount - discountAmount",
+    "paidAmount": "sum(payments.amount)",
+    "balanceAmount": "totalAmount - paidAmount"
+  },
+
+  "timerRules": {
+    "start": {
+      "set": {
+        "timerRunning": true,
+        "timerStartedAt": "now"
+      }
+    },
+    "stop": {
+      "calculateElapsed": true,
+      "accumulate": "timerSeconds",
+      "set": {
+        "timerRunning": false,
+        "timerStartedAt": null
+      }
+    }
+  },
+
+  "historyRules": {
+    "trackStatusChanges": true,
+    "trackAssignments": true,
+    "trackPayments": true,
+    "trackInventoryUsage": true,
+    "trackTimerEvents": true
+  },
+
+  "deleteRules": {
+    "customer": "archive-if-history-exists",
+    "vehicle": "restrict-if-repairs-exist",
+    "device": "restrict-if-repairs-exist",
+    "repair": "soft-delete",
+    "payment": "immutable",
+    "inventoryTransaction": "immutable"
+  }
+}
