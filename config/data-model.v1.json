@@ -1,0 +1,134 @@
+{
+  "schemaVersion": "1.0.0",
+  "system": "Farmandeh Saeed",
+  "architecture": "Modular Personal Operating System",
+  "entities": {
+    "repairs": {
+      "enabled": true,
+      "fields": [
+        "id",
+        "createdAt",
+        "updatedAt",
+        "customerId",
+        "vehicleId",
+        "deviceId",
+        "status",
+        "problem",
+        "diagnosis",
+        "repairActions",
+        "technicianId",
+        "benchId",
+        "receivedAt",
+        "completedAt",
+        "deliveredAt",
+        "cost",
+        "price",
+        "paymentStatus",
+        "media",
+        "notes"
+      ]
+    },
+    "customers": {
+      "enabled": true,
+      "fields": [
+        "id",
+        "name",
+        "phones",
+        "vehicles",
+        "repairHistory",
+        "notes"
+      ]
+    },
+    "vehicles": {
+      "enabled": true,
+      "fields": [
+        "id",
+        "brand",
+        "model",
+        "year",
+        "trim",
+        "plate",
+        "vin",
+        "customerId",
+        "devices",
+        "repairHistory"
+      ]
+    },
+    "devices": {
+      "enabled": true,
+      "fields": [
+        "id",
+        "category",
+        "brand",
+        "model",
+        "serialNumber",
+        "vehicleId",
+        "photos",
+        "repairHistory"
+      ]
+    },
+    "inventory": {
+      "enabled": true,
+      "fields": [
+        "id",
+        "category",
+        "partNumber",
+        "description",
+        "quantity",
+        "location",
+        "supplierId",
+        "purchasePrice",
+        "salePrice",
+        "minimumStock"
+      ]
+    },
+    "tasks": {
+      "enabled": true,
+      "fields": [
+        "id",
+        "title",
+        "description",
+        "status",
+        "priority",
+        "assignedTo",
+        "dueAt",
+        "createdAt",
+        "completedAt"
+      ]
+    },
+    "forum": {
+      "enabled": true,
+      "fields": [
+        "categories",
+        "topics",
+        "posts",
+        "replies",
+        "users",
+        "attachments",
+        "subscriptions"
+      ]
+    },
+    "sales": {
+      "enabled": true,
+      "fields": [
+        "products",
+        "brands",
+        "vehicleCompatibility",
+        "prices",
+        "orders",
+        "customers"
+      ]
+    },
+    "users": {
+      "enabled": true,
+      "fields": [
+        "id",
+        "name",
+        "role",
+        "permissions",
+        "workspaceId",
+        "active"
+      ]
+    }
+  }
+}
