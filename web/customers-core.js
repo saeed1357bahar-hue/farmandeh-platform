@@ -1,61 +1,43 @@
 (() => {
   "use strict";
 
-  const WORKSPACE_ID = "default";
-
-  let customerRoute = "list";
-  let selectedCustomerId = null;
-  let customers = [];
-
-  function esc(value) {
-    return String(value ?? "").replace(
-      /[&<>"']/g,
-      c => ({
-        "&": "&amp;",
-        "<": "&lt;",
-        ">": "&gt;",
-        '"': "&quot;",
-        "'": "&#039;"
-      })[c]
-    );
+  if (!window.FarmandehDB) {
+    console.error("FarmandehDB not found");
+    return;
   }
 
-  function phoneText(customer) {
-    const phones = Array.isArray(customer.phones)
-      ? customer.phones
-      : [];
+  let customers = [];
+  let currentCustomerId = null;
 
-    return phones.join("، ");
+  const esc = v =>
+    String(v ?? "").replace(/[&<>"']/g, c => ({
+      "&": "&amp;",
+      "<": "&lt;",
+      ">": "&gt;",
+      '"': "&quot;",
+      "'": "&#039;"
+    })[c]);
+
+  function phone(c) {
+    return Array.isArray(c.phones) && c.phones.length
+      ? c.phones[0]
+      : "";
   }
 
   function customerNo() {
-    return (
-      "C-" +
-      Date.now()
-        .toString(36)
-        .toUpperCase()
-    );
+    return "C-" + Date.now().toString(36).toUpperCase();
   }
 
   function topbar(title) {
     return `
       <header class="topbar">
-        <button
-          class="icon-btn"
-          data-customer-action="back"
-        >→</button>
+        <button class="icon-btn" data-customer-action="back">→</button>
 
         <div class="brand">
           <div class="logo">👥</div>
-
           <div>
-            <div class="brand-title">
-              ${esc(title)}
-            </div>
-
-            <div class="brand-sub">
-              Customers Core
-            </div>
+            <div class="brand-title">${esc(title)}</div>
+            <div class="brand-sub">Customers Core</div>
           </div>
         </div>
 
@@ -64,65 +46,229 @@
     `;
   }
 
-  function bottomNav() {
+  function nav() {
     return `
       <nav class="bottom-nav">
-        <button
-          class="nav-btn"
-          data-customer-action="home"
-        >
-          🏠<br>
-          <small>خانه</small>
+        <button class="nav-btn" data-customer-action="home">
+          🏠<br><small>خانه</small>
         </button>
 
-        <button
-          class="nav-btn"
-          data-customer-action="customers"
-        >
-          👥<br>
-          <small>مشتریان</small>
+        <button class="nav-btn active" data-customer-action="list">
+          👥<br><small>مشتریان</small>
         </button>
 
-        <button
-          class="nav-btn"
-          data-customer-action="new"
-        >
-          ➕<br>
-          <small>جدید</small>
+        <button class="nav-btn" data-customer-action="new">
+          ➕<br><small>جدید</small>
         </button>
       </nav>
     `;
   }
 
-  async function loadCustomers() {
-    customers =
-      await FarmandehDB.all(
-        "customers"
-      );
+  function setHTML(html) {
+    const app = document.getElementById("app");
+    if (!app) return;
+    app.innerHTML = `<div class="shell">${html}</div>`;
+    window.scrollTo({ top: 0, behavior: "smooth" });
+  }
 
-    customers.sort(
-      (a, b) =>
-        String(b.updatedAt || "")
-          .localeCompare(
-            String(a.updatedAt || "")
-          )
+  function pushCustomerHistory(view, id = null, replace = false) {
+    const state = {
+      farmandehCustomer: true,
+      view,
+      id
+    };
+
+    if (replace) {
+      history.replaceState(state, "");
+    } else {
+      history.pushState(state, "");
+    }
+  }
+
+  async function loadCustomers() {
+    customers = await FarmandehDB.all("customers");
+
+    customers.sort((a, b) =>
+      String(b.updatedAt || "").localeCompare(
+        String(a.updatedAt || "")
+      )
     );
   }
 
-  async function getRelations(customerId) {
-    const [
-      vehicles,
-      devices,
-      repairs
-    ] = await Promise.all([
+  function rows(items) {
+    if (!items.length) {
+      return `<div class="empty">هنوز مشتری ثبت نشده است.</div>`;
+    }
+
+    return items.map(c => `
+      <div class="row clickable" data-customer-id="${esc(c.id)}">
+        <div class="row-main">
+          <div class="row-title">${esc(c.name || "بدون نام")}</div>
+          <div class="row-sub">${esc(phone(c) || "بدون تلفن")}</div>
+          <div class="row-sub">${esc(c.customerNo || "")}</div>
+        </div>
+        <span>‹</span>
+      </div>
+    `).join("");
+  }
+
+  async function showList(addHistory = true) {
+    await loadCustomers();
+
+    setHTML(`
+      ${topbar("مشتریان")}
+
+      <main class="page">
+
+        <section class="hero">
+          <div class="badge">Real Customers Core</div>
+          <h1>مشتریان</h1>
+          <p>پروفایل، خودروها و سابقه تعمیرات واقعی.</p>
+
+          <div class="stats">
+            <div class="stat">
+              <b>${customers.length}</b>
+              <span>مشتری</span>
+            </div>
+          </div>
+        </section>
+
+        <div class="section-head">
+          <div>
+            <h2>لیست مشتریان</h2>
+            <small>IndexedDB</small>
+          </div>
+
+          <button class="primary-btn" data-customer-action="new">
+            + مشتری
+          </button>
+        </div>
+
+        <section class="panel">
+
+          <div class="field" style="margin-bottom:12px">
+            <label>جستجو</label>
+            <input
+              id="customerSearch"
+              placeholder="نام، تلفن، شماره مشتری..."
+              autocomplete="off"
+            >
+          </div>
+
+          <div id="customerList" class="list">
+            ${rows(customers)}
+          </div>
+
+        </section>
+
+      </main>
+
+      ${nav()}
+    `);
+
+    currentCustomerId = null;
+
+    if (addHistory) {
+      pushCustomerHistory("list");
+    }
+  }
+
+  function showForm(customer = null, addHistory = true) {
+    const c = customer || {
+      id: "",
+      customerNo: customerNo(),
+      name: "",
+      phones: [],
+      address: "",
+      notes: ""
+    };
+
+    setHTML(`
+      ${topbar(customer ? "ویرایش مشتری" : "مشتری جدید")}
+
+      <main class="page">
+
+        <section class="panel">
+
+          <div class="section-head">
+            <div>
+              <h2>${customer ? "ویرایش پروفایل" : "ثبت مشتری"}</h2>
+              <small>Customer Entity</small>
+            </div>
+          </div>
+
+          <div class="form-grid">
+
+            <div class="field">
+              <label>شماره مشتری</label>
+              <input id="customerNo" value="${esc(c.customerNo || customerNo())}">
+            </div>
+
+            <div class="field">
+              <label>نام مشتری</label>
+              <input id="customerName" value="${esc(c.name || "")}">
+            </div>
+
+            <div class="field">
+              <label>تلفن</label>
+              <input id="customerPhone" type="tel" value="${esc(phone(c))}">
+            </div>
+
+            <div class="field">
+              <label>آدرس</label>
+              <input id="customerAddress" value="${esc(c.address || "")}">
+            </div>
+
+          </div>
+
+          <div class="field" style="margin-top:12px">
+            <label>یادداشت</label>
+            <textarea id="customerNotes" rows="4">${esc(c.notes || "")}</textarea>
+          </div>
+
+          <div class="toolbar" style="margin-top:18px">
+
+            <button
+              class="primary-btn"
+              data-customer-action="save"
+              data-id="${esc(c.id || "")}"
+            >
+              ذخیره مشتری
+            </button>
+
+            ${customer ? `
+              <button
+                class="danger-btn"
+                data-customer-action="archive"
+                data-id="${esc(c.id)}"
+              >
+                بایگانی
+              </button>
+            ` : ""}
+
+          </div>
+
+        </section>
+
+      </main>
+
+      ${nav()}
+    `);
+
+    currentCustomerId = customer?.id || null;
+
+    if (addHistory) {
+      pushCustomerHistory(
+        customer ? "edit" : "new",
+        customer?.id || null
+      );
+    }
+  }
+
+  async function relations(customerId) {
+    const [vehicles, repairs] = await Promise.all([
       FarmandehDB.byIndex(
         "vehicles",
-        "customerId",
-        customerId
-      ),
-
-      FarmandehDB.byIndex(
-        "devices",
         "customerId",
         customerId
       ),
@@ -134,432 +280,169 @@
       )
     ]);
 
-    return {
-      vehicles,
-      devices,
-      repairs
-    };
+    return { vehicles, repairs };
   }
 
-  function statusLabel(status) {
-    return ({
-      intake: "پذیرش",
-      diagnosis: "عیب‌یابی",
-      repairing: "در حال تعمیر",
-      testing: "تست",
-      ready: "آماده تحویل",
-      delivered: "تحویل‌شده",
-      cancelled: "لغو‌شده"
-    })[status] || status || "—";
-  }
+  async function showDetail(id, addHistory = true) {
+    const c = await FarmandehDB.get("customers", id);
 
-  async function renderList() {
-    await loadCustomers();
-
-    const app =
-      document.getElementById("app");
-
-    app.innerHTML = `
-      <div class="shell">
-        ${topbar("مشتریان")}
-
-        <main class="page">
-
-          <section class="hero">
-            <div class="badge">
-              Real Customers Core
-            </div>
-
-            <h1>مشتریان</h1>
-
-            <p>
-              پروفایل واقعی مشتری،
-              خودروها، دستگاه‌ها و
-              تاریخچه تعمیرات.
-            </p>
-
-            <div class="stats">
-              <div class="stat">
-                <b>${customers.length}</b>
-                <span>مشتری</span>
-              </div>
-            </div>
-          </section>
-
-          <div class="section-head">
-            <div>
-              <h2>لیست مشتریان</h2>
-              <small>
-                ذخیره در IndexedDB
-              </small>
-            </div>
-
-            <button
-              class="primary-btn"
-              data-customer-action="new"
-            >
-              + مشتری
-            </button>
-          </div>
-
-          <section class="panel">
-            <div
-              class="field"
-              style="margin-bottom:12px"
-            >
-              <label>
-                جستجوی مشتری
-              </label>
-
-              <input
-                id="customerSearch"
-                placeholder="نام، تلفن، شماره مشتری..."
-                autocomplete="off"
-              >
-            </div>
-
-            <div
-              id="customerList"
-              class="list"
-            >
-              ${renderCustomerRows(customers)}
-            </div>
-          </section>
-
-        </main>
-
-        ${bottomNav()}
-      </div>
-    `;
-
-    customerRoute = "list";
-    selectedCustomerId = null;
-  }
-
-  function renderCustomerRows(items) {
-    if (!items.length) {
-      return `
-        <div class="empty">
-          هنوز مشتری ثبت نشده است.
-        </div>
-      `;
-    }
-
-    return items.map(c => `
-      <div
-        class="row clickable"
-        data-customer-id="${esc(c.id)}"
-      >
-        <div class="row-main">
-
-          <div class="row-title">
-            ${esc(c.name || "بدون نام")}
-          </div>
-
-          <div class="row-sub">
-            ${esc(phoneText(c) || "بدون تلفن")}
-          </div>
-
-          <div class="row-sub">
-            ${esc(c.customerNo || "")}
-          </div>
-
-        </div>
-
-        <span>‹</span>
-      </div>
-    `).join("");
-  }
-
-  function renderForm(customer = null) {
-    const c = customer || {
-      id: "",
-      customerNo: "",
-      name: "",
-      phones: [],
-      address: "",
-      tags: [],
-      notes: ""
-    };
-
-    const firstPhone =
-      Array.isArray(c.phones)
-        ? c.phones[0] || ""
-        : "";
-
-    const app =
-      document.getElementById("app");
-
-    app.innerHTML = `
-      <div class="shell">
-
-        ${topbar(
-          customer
-            ? "ویرایش مشتری"
-            : "مشتری جدید"
-        )}
-
-        <main class="page">
-
-          <section class="panel">
-
-            <div class="section-head">
-              <div>
-                <h2>
-                  ${
-                    customer
-                      ? "ویرایش پروفایل"
-                      : "ثبت مشتری"
-                  }
-                </h2>
-
-                <small>
-                  Customer Entity
-                </small>
-              </div>
-            </div>
-
-            <div class="form-grid">
-
-              <div class="field">
-                <label>
-                  شماره مشتری
-                </label>
-
-                <input
-                  id="customerNo"
-                  value="${esc(
-                    c.customerNo ||
-                    customerNo()
-                  )}"
-                >
-              </div>
-
-              <div class="field">
-                <label>
-                  نام مشتری
-                </label>
-
-                <input
-                  id="customerName"
-                  value="${esc(c.name)}"
-                >
-              </div>
-
-              <div class="field">
-                <label>
-                  تلفن
-                </label>
-
-                <input
-                  id="customerPhone"
-                  type="tel"
-                  value="${esc(firstPhone)}"
-                >
-              </div>
-
-              <div class="field">
-                <label>
-                  آدرس
-                </label>
-
-                <input
-                  id="customerAddress"
-                  value="${esc(c.address || "")}"
-                >
-              </div>
-
-            </div>
-
-            <div
-              class="field"
-              style="margin-top:12px"
-            >
-              <label>
-                برچسب‌ها
-              </label>
-
-              <input
-                id="customerTags"
-                placeholder="VIP، همکار، شهرستان..."
-                value="${esc(
-                  Array.isArray(c.tags)
-                    ? c.tags.join("، ")
-                    : ""
-                )}"
-              >
-            </div>
-
-            <div
-              class="field"
-              style="margin-top:12px"
-            >
-              <label>
-                یادداشت
-              </label>
-
-              <textarea
-                id="customerNotes"
-                rows="4"
-              >${esc(c.notes || "")}</textarea>
-            </div>
-
-            <div
-              class="toolbar"
-              style="margin-top:18px"
-            >
-              <button
-                class="primary-btn"
-                data-customer-action="save"
-                data-id="${esc(c.id)}"
-              >
-                ذخیره مشتری
-              </button>
-
-              ${
-                customer
-                  ? `
-                    <button
-                      class="danger-btn"
-                      data-customer-action="archive"
-                      data-id="${esc(c.id)}"
-                    >
-                      بایگانی
-                    </button>
-                  `
-                  : ""
-              }
-
-            </div>
-
-          </section>
-
-        </main>
-
-        ${bottomNav()}
-      </div>
-    `;
-
-    customerRoute =
-      customer ? "edit" : "new";
-
-    selectedCustomerId =
-      customer?.id || null;
-  }
-
-  async function renderDetail(customerId) {
-    const customer =
-      await FarmandehDB.get(
-        "customers",
-        customerId
-      );
-
-    if (!customer) {
-      await renderList();
+    if (!c) {
+      await showList(false);
       return;
     }
 
-    const {
-      vehicles,
-      devices,
-      repairs
-    } = await getRelations(customerId);
+    const { vehicles, repairs } = await relations(id);
 
-    const app =
-      document.getElementById("app");
+    setHTML(`
+      ${topbar("پروفایل مشتری")}
 
-    app.innerHTML = `
-      <div class="shell">
+      <main class="page">
 
-        ${topbar("پروفایل مشتری")}
+        <section class="hero">
 
-        <main class="page">
+          <div class="badge">${esc(c.customerNo || "")}</div>
 
-          <section class="hero">
+          <h1>${esc(c.name || "بدون نام")}</h1>
 
-            <div class="badge">
-              ${esc(customer.customerNo || "")}
+          <p>${esc(phone(c) || "بدون تلفن")}</p>
+
+          <div class="stats">
+
+            <div class="stat">
+              <b>${vehicles.length}</b>
+              <span>خودرو</span>
             </div>
 
-            <h1>
-              ${esc(customer.name)}
-            </h1>
-
-            <p>
-              ${esc(
-                phoneText(customer) ||
-                "بدون تلفن"
-              )}
-            </p>
-
-            <div class="stats">
-
-              <div class="stat">
-                <b>${vehicles.length}</b>
-                <span>خودرو</span>
-              </div>
-
-              <div class="stat">
-                <b>${devices.length}</b>
-                <span>دستگاه</span>
-              </div>
-
-              <div class="stat">
-                <b>${repairs.length}</b>
-                <span>تعمیر</span>
-              </div>
-
+            <div class="stat">
+              <b>${repairs.length}</b>
+              <span>تعمیر</span>
             </div>
 
-          </section>
-
-          <div class="section-head">
-            <h2>عملیات</h2>
           </div>
 
-          <section class="toolbar">
+        </section>
 
-            <button
-              class="primary-btn"
-              data-customer-action="edit"
-              data-id="${esc(customer.id)}"
-            >
-              ✏️ ویرایش
-            </button>
+        <div class="section-head">
+          <h2>عملیات</h2>
+        </div>
 
-            <button
-              class="ghost-btn"
-              data-customer-action="new-vehicle"
-              data-id="${esc(customer.id)}"
-            >
-              🚗 خودرو
-            </button>
+        <section class="toolbar">
 
-          </section>
+          <button
+            class="primary-btn"
+            data-customer-action="edit"
+            data-id="${esc(c.id)}"
+          >
+            ✏️ ویرایش
+          </button>
 
-          <div class="section-head">
-            <h2>اطلاعات</h2>
+          <button
+            class="ghost-btn"
+            data-customer-action="vehicle-new"
+            data-id="${esc(c.id)}"
+          >
+            🚗 ثبت خودرو
+          </button>
+
+        </section>
+
+        <div class="section-head">
+          <h2>اطلاعات</h2>
+        </div>
+
+        <section class="list">
+
+          <div class="row">
+            <div class="row-main">
+              <div class="row-title">تلفن</div>
+              <div class="row-sub">${esc(phone(c) || "—")}</div>
+            </div>
           </div>
 
-          <section class="list">
+          <div class="row">
+            <div class="row-main">
+              <div class="row-title">آدرس</div>
+              <div class="row-sub">${esc(c.address || "—")}</div>
+            </div>
+          </div>
 
-            ${detailRow(
-              "تلفن",
-              phoneText(customer)
-            )}
+          <div class="row">
+            <div class="row-main">
+              <div class="row-title">یادداشت</div>
+              <div class="row-sub">${esc(c.notes || "—")}</div>
+            </div>
+          </div>
 
-            ${detailRow(
-              "آدرس",
-              customer.address
-            )}
+        </section>
 
-            ${detailRow(
-              "برچسب‌ها",
-              Array.isArray(customer.tags)
-                ? customer.tags.join("، ")
-                : ""
-            )}
+        <div class="section-head">
+          <h2>خودروها</h2>
+        </div>
 
-            ${detailRow(
-              "یادداشت",
-              customer.notes
+        <section class="list">
+
+          ${
+            vehicles.length
+              ? vehicles.map(v => `
+                <div class="row">
+                  <div class="row-main">
+                    <div class="row-title">
+                      ${esc(
+                        [v.brand, v.model]
+                          .filter(Boolean)
+                          .join(" ") || "خودرو"
+                      )}
+                    </div>
+
+                    <div class="row-sub">
+                      ${v.plate ? "پلاک: " + esc(v.plate) : "بدون پلاک"}
+                    </div>
+                  </div>
+                </div>
+              `).join("")
+              : `<div class="empty">خودرویی ثبت نشده است.</div>`
+          }
+
+        </section>
+
+        <div class="section-head">
+          <h2>سوابق تعمیرات</h2>
+        </div>
+
+        <section class="list">
+
+          ${
+            repairs.length
+              ? repairs.map(r => `
+                <div class="row">
+                  <div class="row-main">
+
+                    <div class="row-title">
+                      ${esc(r.repairNo || "بدون شماره")}
+                    </div>
+
+                    <div class="row-sub">
+                      ${esc(r.faultDescription || "")}
+                    </div>
+
+                    <div class="row-sub">
+                      ${esc(r.status || "")}
+                    </div>
+
+                  </div>
+                </div>
+              `).join("")
+              : `<div class="empty">هنوز سابقه تعمیر ندارد.</div>`
+          }
+
+        </section>
+
+      </main>
+
+      ${nav()}
+    `);
+
+    currentCustomerId = id;
+
+    if (addHistory) {
+      pushCustomerHistory("detail",
