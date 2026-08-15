@@ -4,7 +4,7 @@
   const STORAGE_KEY = "farmandeh-runtime-V1";
 
   const DEFAULT = {
-    version: "1.1",
+    version: "1.2",
 
     workspace: {
       name: "فرمانده",
@@ -30,7 +30,7 @@
         id: "customers",
         title: "مشتریان",
         emoji: "👥",
-        description: "پروفایل مشتری، خودروها و تاریخچه تعمیر",
+        description: "پروفایل مشتری، خودروها و تاریخچه تعمیرات",
         visible: true
       },
       {
@@ -69,25 +69,26 @@
   };
 
   let state = loadState();
+
   let route = "home";
   let routeArg = null;
-  let toastTimer;
+  let toastTimer = null;
 
-  function clone(v) {
-    return JSON.parse(JSON.stringify(v));
+  function clone(value) {
+    return JSON.parse(JSON.stringify(value));
   }
 
-  function esc(s) {
-    return String(s ?? "").replace(
+  function esc(value) {
+    return String(value ?? "").replace(
       /[&<>"']/g,
-      c =>
+      char =>
         ({
           "&": "&amp;",
           "<": "&lt;",
           ">": "&gt;",
           '"': "&quot;",
           "'": "&#039;"
-        })[c]
+        })[char]
     );
   }
 
@@ -97,7 +98,7 @@
       "_" +
       Date.now().toString(36) +
       "_" +
-      Math.random().toString(36).slice(2, 8)
+      Math.random().toString(36).slice(2, 9)
     );
   }
 
@@ -105,82 +106,94 @@
     return new Date().toISOString();
   }
 
-  function formatMoney(v) {
-    return Number(v || 0).toLocaleString("fa-IR");
+  function formatMoney(value) {
+    return Number(value || 0).toLocaleString("fa-IR");
+  }
+
+  function normalizeText(value) {
+    return String(value || "")
+      .trim()
+      .toLowerCase();
   }
 
   function loadState() {
     try {
-      const saved = localStorage.getItem(STORAGE_KEY);
+      const raw = localStorage.getItem(STORAGE_KEY);
 
-      if (saved) {
-        const p = JSON.parse(saved);
-
-        return {
-          ...clone(DEFAULT),
-          ...p,
-
-          workspace: {
-            ...clone(DEFAULT.workspace),
-            ...(p.workspace || {})
-          },
-
-          theme: {
-            ...clone(DEFAULT.theme),
-            ...(p.theme || {})
-          },
-
-          modules:
-            Array.isArray(p.modules) && p.modules.length
-              ? p.modules
-              : clone(DEFAULT.modules),
-
-          repairs:
-            Array.isArray(p.repairs)
-              ? p.repairs
-              : [],
-
-          customers:
-            Array.isArray(p.customers)
-              ? p.customers
-              : [],
-
-          vehicles:
-            Array.isArray(p.vehicles)
-              ? p.vehicles
-              : []
-        };
+      if (!raw) {
+        return clone(DEFAULT);
       }
-    } catch (e) {
-      console.error("Load error:", e);
-    }
 
-    return clone(DEFAULT);
+      const saved = JSON.parse(raw);
+
+      return {
+        ...clone(DEFAULT),
+        ...saved,
+
+        workspace: {
+          ...clone(DEFAULT.workspace),
+          ...(saved.workspace || {})
+        },
+
+        theme: {
+          ...clone(DEFAULT.theme),
+          ...(saved.theme || {})
+        },
+
+        modules:
+          Array.isArray(saved.modules) && saved.modules.length
+            ? saved.modules
+            : clone(DEFAULT.modules),
+
+        repairs:
+          Array.isArray(saved.repairs)
+            ? saved.repairs
+            : [],
+
+        customers:
+          Array.isArray(saved.customers)
+            ? saved.customers
+            : [],
+
+        vehicles:
+          Array.isArray(saved.vehicles)
+            ? saved.vehicles
+            : []
+      };
+    } catch (error) {
+      console.error("Farmandeh load error:", error);
+      return clone(DEFAULT);
+    }
   }
 
-  function saveState(msg = "ذخیره شد") {
+  function saveState(message = "") {
     localStorage.setItem(
       STORAGE_KEY,
       JSON.stringify(state)
     );
 
-    if (msg) toast(msg);
+    if (message) {
+      toast(message);
+    }
   }
 
-  function toast(msg) {
-    document.querySelector(".toast")?.remove();
+  function toast(message) {
+    document
+      .querySelector(".toast")
+      ?.remove();
 
     clearTimeout(toastTimer);
 
-    const el = document.createElement("div");
+    const element =
+      document.createElement("div");
 
-    el.className = "toast";
-    el.textContent = msg;
+    element.className = "toast";
+    element.textContent = message;
 
-    document.body.appendChild(el);
+    document.body.appendChild(element);
 
     toastTimer = setTimeout(
-      () => el.remove(),
+      () => element.remove(),
       1800
     );
   }
@@ -207,8 +220,12 @@
     );
   }
 
+  // ======================================================
+  // NAVIGATION
+  // ======================================================
+
   function navigate(
-    next,
+    nextRoute,
     arg = null,
     options = {}
   ) {
@@ -217,7 +234,7 @@
       fromPop = false
     } = options;
 
-    route = next;
+    route = nextRoute;
     routeArg = arg;
 
     if (!fromPop) {
@@ -254,6 +271,10 @@
     }
   }
 
+  // ======================================================
+  // COMMON UI
+  // ======================================================
+
   function topbar(title) {
     return `
       <header class="topbar">
@@ -264,6 +285,7 @@
               <button
                 class="icon-btn"
                 data-action="back"
+                aria-label="بازگشت"
               >
                 →
               </button>
@@ -314,7 +336,8 @@
           class="nav-btn ${route === "home" ? "active" : ""}"
           data-route="home"
         >
-          🏠<br>
+          🏠
+          <br>
           <small>خانه</small>
         </button>
 
@@ -322,7 +345,8 @@
           class="nav-btn ${route === "activity" ? "active" : ""}"
           data-route="activity"
         >
-          📊<br>
+          📊
+          <br>
           <small>فعالیت</small>
         </button>
 
@@ -330,7 +354,8 @@
           class="nav-btn ${route === "studio" ? "active" : ""}"
           data-route="studio"
         >
-          🎛️<br>
+          🎛️
+          <br>
           <small>استودیو</small>
         </button>
 
@@ -341,34 +366,38 @@
   function field(
     id,
     label,
-    value,
+    value = "",
     type = "text"
   ) {
     return `
       <div class="field">
-        <label>${label}</label>
+
+        <label>
+          ${label}
+        </label>
 
         <input
           id="${id}"
           type="${type}"
           value="${esc(value)}"
         >
+
       </div>
     `;
   }
 
-  function detailRow(k, v) {
+  function detailRow(label, value) {
     return `
       <div class="row">
 
         <div class="row-main">
 
           <div class="row-title">
-            ${esc(k)}
+            ${esc(label)}
           </div>
 
           <div class="row-sub">
-            ${esc(v || "—")}
+            ${esc(value || "—")}
           </div>
 
         </div>
@@ -377,44 +406,275 @@
     `;
   }
 
-  // =========================
-  // HOME
-  // =========================
+  // ======================================================
+  // DATA HELPERS
+  // ======================================================
+
+  function customerRepairs(customer) {
+    return state.repairs.filter(repair => {
+      if (
+        repair.customerId &&
+        repair.customerId === customer.id
+      ) {
+        return true;
+      }
+
+      if (
+        customer.phone &&
+        repair.customerPhone &&
+        normalizeText(customer.phone) ===
+          normalizeText(repair.customerPhone)
+      ) {
+        return true;
+      }
+
+      return (
+        customer.name &&
+        repair.customerName &&
+        normalizeText(customer.name) ===
+          normalizeText(repair.customerName)
+      );
+    });
+  }
+
+  function customerVehicles(customerId) {
+    return state.vehicles.filter(
+      vehicle =>
+        vehicle.customerId === customerId
+    );
+  }
+
+  function findCustomer(
+    name,
+    phone
+  ) {
+    const normalizedPhone =
+      normalizeText(phone);
+
+    const normalizedName =
+      normalizeText(name);
+
+    return state.customers.find(customer => {
+      if (
+        normalizedPhone &&
+        normalizeText(customer.phone) ===
+          normalizedPhone
+      ) {
+        return true;
+      }
+
+      return (
+        normalizedName &&
+        normalizeText(customer.name) ===
+          normalizedName
+      );
+    });
+  }
+
+  function ensureCustomerForRepair(repair) {
+    const name =
+      String(
+        repair.customerName || ""
+      ).trim();
+
+    const phone =
+      String(
+        repair.customerPhone || ""
+      ).trim();
+
+    if (!name && !phone) {
+      return null;
+    }
+
+    let customer =
+      findCustomer(
+        name,
+        phone
+      );
+
+    if (!customer) {
+      customer = {
+        id: uid("c"),
+
+        customerNo:
+          "C-" +
+          Date.now()
+            .toString(36)
+            .toUpperCase(),
+
+        name:
+          name ||
+          "مشتری بدون نام",
+
+        phone,
+
+        address: "",
+        tags: "",
+        notes: "",
+
+        createdAt:
+          nowIso(),
+
+        updatedAt:
+          nowIso()
+      };
+
+      state.customers.push(
+        customer
+      );
+    } else {
+      if (name) {
+        customer.name = name;
+      }
+
+      if (phone) {
+        customer.phone = phone;
+      }
+
+      customer.updatedAt =
+        nowIso();
+    }
+
+    repair.customerId =
+      customer.id;
+
+    return customer;
+  }
+
+  function ensureVehicleForRepair(
+    repair,
+    customer
+  ) {
+    if (
+      !customer ||
+      !String(
+        repair.vehicle || ""
+      ).trim()
+    ) {
+      return null;
+    }
+
+    const model =
+      String(
+        repair.vehicle
+      ).trim();
+
+    let vehicle =
+      state.vehicles.find(v => {
+        return (
+          v.customerId ===
+            customer.id &&
+          normalizeText(v.model) ===
+            normalizeText(model)
+        );
+      });
+
+    if (!vehicle) {
+      vehicle = {
+        id: uid("v"),
+        customerId:
+          customer.id,
+
+        brand: "",
+        model,
+
+        year: "",
+        plate: "",
+
+        createdAt:
+          nowIso(),
+
+        updatedAt:
+          nowIso()
+      };
+
+      state.vehicles.push(
+        vehicle
+      );
+    }
+
+    repair.vehicleId =
+      vehicle.id;
+
+    return vehicle;
+  }
+
+  function migrateExistingRepairsToCustomers() {
+    let changed = false;
+
+    for (
+      const repair of state.repairs
+    ) {
+      if (repair.customerId) {
+        continue;
+      }
+
+      const customer =
+        ensureCustomerForRepair(
+          repair
+        );
+
+      if (customer) {
+        ensureVehicleForRepair(
+          repair,
+          customer
+        );
+
+        changed = true;
+      }
+    }
+
+    if (changed) {
+      saveState("");
+    }
+  }
+
+  // ======================================================
+  // HOME / COMMAND CENTER
+  // ======================================================
 
   function repairStats() {
     const open =
       state.repairs.filter(
-        r =>
+        repair =>
           ![
             "delivered",
             "cancelled"
-          ].includes(r.status)
+          ].includes(
+            repair.status
+          )
       ).length;
 
     const ready =
       state.repairs.filter(
-        r => r.status === "ready"
+        repair =>
+          repair.status ===
+          "ready"
       ).length;
 
     const returned =
       state.repairs.filter(
-        r => r.isReturn
+        repair =>
+          repair.isReturn
       ).length;
 
     return {
       open,
       ready,
       returned,
-      total: state.repairs.length
+      total:
+        state.repairs.length
     };
   }
 
   function home() {
-    const s = repairStats();
+    const stats =
+      repairStats();
 
     const modules =
       state.modules.filter(
-        m => m.visible !== false
+        module =>
+          module.visible !== false
       );
 
     return `
@@ -425,7 +685,7 @@
         <section class="hero">
 
           <div class="badge">
-            Runtime V1.1 • Repairs + Customers
+            Runtime V1.2 • Repairs + Customers
           </div>
 
           <h1>
@@ -434,18 +694,18 @@
 
           <p>
             هسته واقعی تعمیرات و مشتریان فعال است.
-            اطلاعات ثبت می‌شوند و بعد از خروج باقی می‌مانند.
+            Back، ذخیره‌سازی، ارتباط مشتری و تعمیر فعال هستند.
           </p>
 
           <div class="stats">
 
             <div class="stat">
-              <b>${s.open}</b>
+              <b>${stats.open}</b>
               <span>تعمیر باز</span>
             </div>
 
             <div class="stat">
-              <b>${s.ready}</b>
+              <b>${stats.ready}</b>
               <span>آماده تحویل</span>
             </div>
 
@@ -461,8 +721,15 @@
         <div class="section-head">
 
           <div>
-            <h2>Command Center</h2>
-            <small>ماژول‌ها</small>
+
+            <h2>
+              Command Center
+            </h2>
+
+            <small>
+              ماژول‌ها
+            </small>
+
           </div>
 
           <button
@@ -477,46 +744,61 @@
         <section class="grid">
 
           ${
-            modules.map(m => `
-              <article
-                class="card clickable"
-                data-module="${esc(m.id)}"
-              >
+            modules
+              .map(module => {
+                let badge =
+                  "ماژول";
 
-                <div class="emoji">
-                  ${esc(m.emoji)}
-                </div>
+                if (
+                  module.id ===
+                  "repairs"
+                ) {
+                  badge =
+                    `${stats.total} پرونده`;
+                }
 
-                <h3>
-                  ${esc(m.title)}
-                </h3>
+                if (
+                  module.id ===
+                  "customers"
+                ) {
+                  badge =
+                    `${state.customers.length} مشتری`;
+                }
 
-                <p>
-                  ${esc(m.description)}
-                </p>
+                return `
+                  <article
+                    class="card clickable"
+                    data-module="${esc(module.id)}"
+                  >
 
-                <div class="card-footer">
+                    <div class="emoji">
+                      ${esc(module.emoji)}
+                    </div>
 
-                  <span class="badge">
+                    <h3>
+                      ${esc(module.title)}
+                    </h3>
 
-                    ${
-                      m.id === "repairs"
-                        ? `${s.total} پرونده`
+                    <p>
+                      ${esc(module.description)}
+                    </p>
 
-                        : m.id === "customers"
-                          ? `${state.customers.length} مشتری`
+                    <div class="card-footer">
 
-                          : "ماژول"
-                    }
+                      <span class="badge">
+                        ${badge}
+                      </span>
 
-                  </span>
+                      <span>
+                        ←
+                      </span>
 
-                  <span>←</span>
+                    </div>
 
-                </div>
-
-              </article>
-            `).join("")
+                  </article>
+                `;
+              })
+              .join("")
           }
 
         </section>
@@ -527,67 +809,114 @@
     `;
   }
 
-  // =========================
+  // ======================================================
   // REPAIRS
-  // =========================
+  // ======================================================
 
-  function statusLabel(s) {
+  function statusLabel(status) {
     return (
       {
-        intake: "پذیرش",
-        diagnosing: "عیب‌یابی",
-        repairing: "در حال تعمیر",
-        waiting_part: "منتظر قطعه",
-        ready: "آماده تحویل",
-        delivered: "تحویل شده",
-        cancelled: "لغو شده"
-      }[s] || s
+        intake:
+          "پذیرش",
+
+        diagnosing:
+          "عیب‌یابی",
+
+        diagnosis:
+          "عیب‌یابی",
+
+        repairing:
+          "در حال تعمیر",
+
+        waiting_part:
+          "منتظر قطعه",
+
+        testing:
+          "تست",
+
+        ready:
+          "آماده تحویل",
+
+        delivered:
+          "تحویل شده",
+
+        cancelled:
+          "لغو شده"
+      }[status] || status
     );
   }
 
-  function getElapsedSeconds(r) {
-    let sec =
-      Number(r.elapsedSeconds || 0);
+  function getElapsedSeconds(
+    repair
+  ) {
+    let seconds =
+      Number(
+        repair.elapsedSeconds ||
+          0
+      );
 
     if (
-      r.timerRunning &&
-      r.timerStartedAt
+      repair.timerRunning &&
+      repair.timerStartedAt
     ) {
-      sec += Math.max(
+      seconds += Math.max(
         0,
         Math.floor(
           (
             Date.now() -
             new Date(
-              r.timerStartedAt
+              repair.timerStartedAt
             ).getTime()
           ) / 1000
         )
       );
     }
 
-    return sec;
+    return seconds;
   }
 
-  function formatDuration(sec) {
-    sec = Math.floor(sec || 0);
-
-    const h =
-      Math.floor(sec / 3600);
-
-    const m =
+  function formatDuration(
+    seconds
+  ) {
+    seconds =
       Math.floor(
-        (sec % 3600) / 60
+        seconds || 0
       );
 
-    const s =
-      sec % 60;
+    const hours =
+      Math.floor(
+        seconds / 3600
+      );
 
-    return `${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}:${String(s).padStart(2, "0")}`;
+    const minutes =
+      Math.floor(
+        (seconds % 3600) /
+          60
+      );
+
+    const remaining =
+      seconds % 60;
+
+    return (
+      String(hours).padStart(
+        2,
+        "0"
+      ) +
+      ":" +
+      String(minutes).padStart(
+        2,
+        "0"
+      ) +
+      ":" +
+      String(remaining).padStart(
+        2,
+        "0"
+      )
+    );
   }
 
   function repairList() {
-    const q =
+    const search =
       (
         document.getElementById(
           "repairSearch"
@@ -596,29 +925,36 @@
         .trim()
         .toLowerCase();
 
-    return state.repairs.filter(r => {
-      if (!q) return true;
+    return state.repairs.filter(
+      repair => {
+        if (!search) {
+          return true;
+        }
 
-      return [
-        r.repairNo,
-        r.customerName,
-        r.customerPhone,
-        r.vehicle,
-        r.device,
-        r.fault,
-        r.technician,
-        statusLabel(r.status)
-      ].some(
-        v =>
-          String(v || "")
+        return [
+          repair.repairNo,
+          repair.customerName,
+          repair.customerPhone,
+          repair.vehicle,
+          repair.device,
+          repair.fault,
+          repair.technician,
+          statusLabel(
+            repair.status
+          )
+        ].some(value =>
+          String(value || "")
             .toLowerCase()
-            .includes(q)
-      );
-    });
+            .includes(search)
+        );
+      }
+    );
   }
 
-  function renderRepairRows(items) {
-    if (!items.length) {
+  function renderRepairRows(
+    repairs
+  ) {
+    if (!repairs.length) {
       return `
         <div class="empty">
           هنوز پرونده‌ای ثبت نشده است.
@@ -626,7 +962,7 @@
       `;
     }
 
-    return items
+    return repairs
       .slice()
       .sort(
         (a, b) =>
@@ -638,33 +974,36 @@
             )
           )
       )
-      .map(r => {
+      .map(repair => {
         const elapsed =
-          getElapsedSeconds(r);
+          getElapsedSeconds(
+            repair
+          );
 
         return `
           <div
             class="row clickable"
-            data-repair-id="${r.id}"
+            data-repair-id="${esc(repair.id)}"
           >
 
             <div class="row-main">
 
               <div class="row-title">
-                ${esc(r.repairNo || "بدون شماره")}
+                ${esc(repair.repairNo || "بدون شماره")}
                 •
-                ${esc(r.device || "دستگاه")}
+                ${esc(repair.device || "دستگاه")}
               </div>
 
               <div class="row-sub">
-                ${esc(r.customerName || "بدون مشتری")}
+                ${esc(repair.customerName || "بدون مشتری")}
                 •
-                ${esc(r.vehicle || "بدون خودرو")}
+                ${esc(repair.vehicle || "بدون خودرو")}
                 •
-                ${esc(statusLabel(r.status))}
+                ${esc(statusLabel(repair.status))}
               </div>
 
               <div class="row-sub">
+
                 ${
                   elapsed
                     ? `⏱ ${formatDuration(elapsed)}`
@@ -672,15 +1011,18 @@
                 }
 
                 ${
-                  r.isReturn
+                  repair.isReturn
                     ? " • 🔁 برگشتی"
                     : ""
                 }
+
               </div>
 
             </div>
 
-            <span>‹</span>
+            <span>
+              ‹
+            </span>
 
           </div>
         `;
@@ -689,7 +1031,8 @@
   }
 
   function repairsPage() {
-    const s = repairStats();
+    const stats =
+      repairStats();
 
     return `
       ${topbar("تعمیرات")}
@@ -707,24 +1050,24 @@
           </h1>
 
           <p>
-            پرونده واقعی بساز، ویرایش کن،
-            جستجو کن و زمان تعمیر را ثبت کن.
+            پذیرش، ویرایش، جستجو،
+            تایمر، وضعیت و سابقه.
           </p>
 
           <div class="stats">
 
             <div class="stat">
-              <b>${s.total}</b>
+              <b>${stats.total}</b>
               <span>کل پرونده</span>
             </div>
 
             <div class="stat">
-              <b>${s.open}</b>
+              <b>${stats.open}</b>
               <span>باز</span>
             </div>
 
             <div class="stat">
-              <b>${s.ready}</b>
+              <b>${stats.ready}</b>
               <span>آماده</span>
             </div>
 
@@ -735,8 +1078,15 @@
         <div class="section-head">
 
           <div>
-            <h2>پرونده‌ها</h2>
-            <small>ذخیره دائمی</small>
+
+            <h2>
+              پرونده‌ها
+            </h2>
+
+            <small>
+              ذخیره دائمی
+            </small>
+
           </div>
 
           <button
@@ -782,8 +1132,10 @@
     `;
   }
 
-  function repairForm(repair = null) {
-    const r =
+  function repairForm(
+    repair = null
+  ) {
+    const value =
       repair || {
         id: "",
         repairNo: "",
@@ -826,7 +1178,7 @@
               </h2>
 
               <small>
-                تمام فیلدها قابل ویرایش‌اند
+                Real Repair Record
               </small>
 
             </div>
@@ -838,45 +1190,47 @@
             ${field(
               "repairNo",
               "شماره تعمیر",
-              r.repairNo
+              value.repairNo
             )}
 
             ${field(
-              "customerName",
+              "repairCustomerName",
               "نام مشتری",
-              r.customerName
+              value.customerName
             )}
 
             ${field(
-              "customerPhone",
+              "repairCustomerPhone",
               "تلفن",
-              r.customerPhone,
+              value.customerPhone,
               "tel"
             )}
 
             ${field(
-              "vehicle",
+              "repairVehicle",
               "خودرو",
-              r.vehicle
+              value.vehicle
             )}
 
             ${field(
-              "device",
+              "repairDevice",
               "دستگاه / مدل",
-              r.device
+              value.device
             )}
 
             ${field(
-              "technician",
+              "repairTechnician",
               "تکنسین",
-              r.technician
+              value.technician
             )}
 
             <div class="field">
 
-              <label>وضعیت</label>
+              <label>
+                وضعیت
+              </label>
 
-              <select id="status">
+              <select id="repairStatus">
 
                 ${
                   [
@@ -888,16 +1242,18 @@
                     "delivered",
                     "cancelled"
                   ]
-                    .map(
-                      s => `
-                        <option
-                          value="${s}"
-                          ${r.status === s ? "selected" : ""}
-                        >
-                          ${statusLabel(s)}
-                        </option>
-                      `
-                    )
+                    .map(status => `
+                      <option
+                        value="${status}"
+                        ${
+                          value.status === status
+                            ? "selected"
+                            : ""
+                        }
+                      >
+                        ${statusLabel(status)}
+                      </option>
+                    `)
                     .join("")
                 }
 
@@ -906,16 +1262,16 @@
             </div>
 
             ${field(
-              "cost",
+              "repairCost",
               "هزینه کل",
-              r.cost,
+              value.cost,
               "number"
             )}
 
             ${field(
-              "paid",
+              "repairPaid",
               "پرداخت شده",
-              r.paid,
+              value.paid,
               "number"
             )}
 
@@ -926,12 +1282,14 @@
             style="margin-top:12px"
           >
 
-            <label>شرح عیب</label>
+            <label>
+              شرح عیب
+            </label>
 
             <textarea
-              id="fault"
+              id="repairFault"
               rows="4"
-            >${esc(r.fault)}</textarea>
+            >${esc(value.fault)}</textarea>
 
           </div>
 
@@ -945,9 +1303,9 @@
             </label>
 
             <textarea
-              id="diagnosis"
+              id="repairDiagnosis"
               rows="4"
-            >${esc(r.diagnosis)}</textarea>
+            >${esc(value.diagnosis)}</textarea>
 
           </div>
 
@@ -961,9 +1319,9 @@
             </label>
 
             <textarea
-              id="partsUsed"
+              id="repairParts"
               rows="3"
-            >${esc(r.partsUsed)}</textarea>
+            >${esc(value.partsUsed)}</textarea>
 
           </div>
 
@@ -977,9 +1335,9 @@
             </label>
 
             <textarea
-              id="notes"
+              id="repairNotes"
               rows="3"
-            >${esc(r.notes)}</textarea>
+            >${esc(value.notes)}</textarea>
 
           </div>
 
@@ -990,8 +1348,12 @@
 
             <input
               type="checkbox"
-              id="isReturn"
-              ${r.isReturn ? "checked" : ""}
+              id="repairReturn"
+              ${
+                value.isReturn
+                  ? "checked"
+                  : ""
+              }
             >
 
             پرونده برگشتی / تکرار تعمیر
@@ -1006,7 +1368,7 @@
             <button
               class="primary-btn"
               data-action="save-repair"
-              data-id="${esc(r.id)}"
+              data-id="${esc(value.id)}"
             >
               ذخیره پرونده
             </button>
@@ -1017,7 +1379,7 @@
                   <button
                     class="danger-btn"
                     data-action="delete-repair"
-                    data-id="${esc(r.id)}"
+                    data-id="${esc(value.id)}"
                   >
                     حذف
                   </button>
@@ -1035,91 +1397,133 @@
     `;
   }
 
-  function collectRepair(id) {
+  function collectRepair(
+    id
+  ) {
     const old =
       state.repairs.find(
-        r => r.id === id
+        repair =>
+          repair.id === id
       );
 
     return {
       ...(old || {}),
 
       id:
-        old?.id || uid("r"),
+        old?.id ||
+        uid("r"),
 
       repairNo:
-        document.getElementById(
-          "repairNo"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairNo"
+          )
+          .value
+          .trim(),
 
       customerName:
-        document.getElementById(
-          "customerName"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairCustomerName"
+          )
+          .value
+          .trim(),
 
       customerPhone:
-        document.getElementById(
-          "customerPhone"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairCustomerPhone"
+          )
+          .value
+          .trim(),
 
       vehicle:
-        document.getElementById(
-          "vehicle"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairVehicle"
+          )
+          .value
+          .trim(),
 
       device:
-        document.getElementById(
-          "device"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairDevice"
+          )
+          .value
+          .trim(),
 
       technician:
-        document.getElementById(
-          "technician"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairTechnician"
+          )
+          .value
+          .trim(),
 
       status:
-        document.getElementById(
-          "status"
-        ).value,
+        document
+          .getElementById(
+            "repairStatus"
+          )
+          .value,
 
       cost:
         Number(
-          document.getElementById(
-            "cost"
-          ).value || 0
+          document
+            .getElementById(
+              "repairCost"
+            )
+            .value || 0
         ),
 
       paid:
         Number(
-          document.getElementById(
-            "paid"
-          ).value || 0
+          document
+            .getElementById(
+              "repairPaid"
+            )
+            .value || 0
         ),
 
       fault:
-        document.getElementById(
-          "fault"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairFault"
+          )
+          .value
+          .trim(),
 
       diagnosis:
-        document.getElementById(
-          "diagnosis"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairDiagnosis"
+          )
+          .value
+          .trim(),
 
       partsUsed:
-        document.getElementById(
-          "partsUsed"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairParts"
+          )
+          .value
+          .trim(),
 
       notes:
-        document.getElementById(
-          "notes"
-        ).value.trim(),
+        document
+          .getElementById(
+            "repairNotes"
+          )
+          .value
+          .trim(),
 
       isReturn:
-        document.getElementById(
-          "isReturn"
-        ).checked,
+        document
+          .getElementById(
+            "repairReturn"
+          )
+          .checked,
 
       createdAt:
         old?.createdAt ||
@@ -1130,7 +1534,8 @@
 
       elapsedSeconds:
         Number(
-          old?.elapsedSeconds || 0
+          old?.elapsedSeconds ||
+            0
         ),
 
       timerRunning:
@@ -1139,50 +1544,75 @@
         ),
 
       timerStartedAt:
-        old?.timerStartedAt || null
+        old?.timerStartedAt ||
+        null
     };
   }
 
-  function repairDetail(r) {
+  function repairDetail(
+    repair
+  ) {
     const elapsed =
-      getElapsedSeconds(r);
+      getElapsedSeconds(
+        repair
+      );
 
     return `
-      ${topbar(`تعمیر ${r.repairNo || ""}`)}
+      ${topbar(
+        `تعمیر ${
+          repair.repairNo ||
+          ""
+        }`
+      )}
 
       <main class="page">
 
         <section class="hero">
 
           <div class="badge">
-            ${esc(statusLabel(r.status))}
+            ${esc(statusLabel(repair.status))}
           </div>
 
           <h1>
-            ${esc(r.device || "دستگاه")}
+            ${esc(repair.device || "دستگاه")}
           </h1>
 
           <p>
-            ${esc(r.customerName || "بدون نام")}
+            ${esc(repair.customerName || "بدون نام")}
             •
-            ${esc(r.vehicle || "بدون خودرو")}
+            ${esc(repair.vehicle || "بدون خودرو")}
           </p>
 
           <div class="stats">
 
             <div class="stat">
-              <b>${formatDuration(elapsed)}</b>
-              <span>زمان تعمیر</span>
+              <b>
+                ${formatDuration(elapsed)}
+              </b>
+              <span>
+                زمان تعمیر
+              </span>
             </div>
 
             <div class="stat">
-              <b>${formatMoney(r.cost)}</b>
-              <span>هزینه</span>
+              <b>
+                ${formatMoney(repair.cost)}
+              </b>
+              <span>
+                هزینه
+              </span>
             </div>
 
             <div class="stat">
-              <b>${formatMoney((r.cost || 0) - (r.paid || 0))}</b>
-              <span>مانده</span>
+              <b>
+                ${formatMoney(
+                  Number(repair.cost || 0) -
+                  Number(repair.paid || 0)
+                )}
+              </b>
+              <span>
+                مانده
+              </span>
             </div>
 
           </div>
@@ -1190,7 +1620,9 @@
         </section>
 
         <div class="section-head">
-          <h2>عملیات</h2>
+          <h2>
+            عملیات
+          </h2>
         </div>
 
         <section class="toolbar">
@@ -1198,23 +1630,25 @@
           <button
             class="primary-btn"
             data-action="${
-              r.timerRunning
+              repair.timerRunning
                 ? "pause-timer"
                 : "start-timer"
             }"
-            data-id="${r.id}"
+            data-id="${repair.id}"
           >
+
             ${
-              r.timerRunning
+              repair.timerRunning
                 ? "⏸ توقف تایمر"
                 : "▶ شروع تایمر"
             }
+
           </button>
 
           <button
             class="ghost-btn"
             data-action="edit-repair"
-            data-id="${r.id}"
+            data-id="${repair.id}"
           >
             ✏️ ویرایش
           </button>
@@ -1222,7 +1656,7 @@
           <button
             class="ghost-btn"
             data-action="mark-ready"
-            data-id="${r.id}"
+            data-id="${repair.id}"
           >
             ✅ آماده تحویل
           </button>
@@ -1230,22 +1664,24 @@
         </section>
 
         <div class="section-head">
-          <h2>اطلاعات پرونده</h2>
+          <h2>
+            اطلاعات پرونده
+          </h2>
         </div>
 
         <section class="list">
 
-          ${detailRow("مشتری", r.customerName)}
-          ${detailRow("تلفن", r.customerPhone)}
-          ${detailRow("خودرو", r.vehicle)}
-          ${detailRow("دستگاه", r.device)}
-          ${detailRow("تکنسین", r.technician)}
-          ${detailRow("شرح عیب", r.fault)}
-          ${detailRow("تشخیص", r.diagnosis)}
-          ${detailRow("قطعات مصرفی", r.partsUsed)}
-          ${detailRow("وضعیت", statusLabel(r.status))}
-          ${detailRow("برگشتی", r.isReturn ? "بله" : "خیر")}
-          ${detailRow("یادداشت", r.notes)}
+          ${detailRow("مشتری", repair.customerName)}
+          ${detailRow("تلفن", repair.customerPhone)}
+          ${detailRow("خودرو", repair.vehicle)}
+          ${detailRow("دستگاه", repair.device)}
+          ${detailRow("تکنسین", repair.technician)}
+          ${detailRow("شرح عیب", repair.fault)}
+          ${detailRow("تشخیص", repair.diagnosis)}
+          ${detailRow("قطعات مصرفی", repair.partsUsed)}
+          ${detailRow("وضعیت", statusLabel(repair.status))}
+          ${detailRow("برگشتی", repair.isReturn ? "بله" : "خیر")}
+          ${detailRow("یادداشت", repair.notes)}
 
         </section>
 
@@ -1255,30 +1691,14 @@
     `;
   }
 
-  // =========================
+  // ======================================================
   // CUSTOMERS
-  // =========================
+  // ======================================================
 
-  function customerRepairCount(c) {
-    return state.repairs.filter(r => {
-      if (
-        c.phone &&
-        r.customerPhone &&
-        r.customerPhone === c.phone
-      ) {
-        return true;
-      }
-
-      return (
-        c.name &&
-        r.customerName &&
-        r.customerName === c.name
-      );
-    }).length;
-  }
-
-  function customerRows(items) {
-    if (!items.length) {
+  function customerRows(
+    customers
+  ) {
+    if (!customers.length) {
       return `
         <div class="empty">
           هنوز مشتری ثبت نشده است.
@@ -1286,7 +1706,7 @@
       `;
     }
 
-    return items
+    return customers
       .slice()
       .sort(
         (a, b) =>
@@ -1298,40 +1718,48 @@
             )
           )
       )
-      .map(c => `
-        <div
-          class="row clickable"
-          data-customer-id="${esc(c.id)}"
-        >
+      .map(customer => {
+        const repairs =
+          customerRepairs(
+            customer
+          );
 
-          <div class="row-main">
+        const vehicles =
+          customerVehicles(
+            customer.id
+          );
 
-            <div class="row-title">
-              ${esc(c.name || "بدون نام")}
+        return `
+          <div
+            class="row clickable"
+            data-customer-id="${esc(customer.id)}"
+          >
+
+            <div class="row-main">
+
+              <div class="row-title">
+                ${esc(customer.name || "بدون نام")}
+              </div>
+
+              <div class="row-sub">
+                ${esc(customer.phone || "بدون تلفن")}
+              </div>
+
+              <div class="row-sub">
+                ${repairs.length} تعمیر
+                •
+                ${vehicles.length} خودرو
+              </div>
+
             </div>
 
-            <div class="row-sub">
-              ${esc(c.phone || "بدون تلفن")}
-            </div>
-
-            <div class="row-sub">
-              ${customerRepairCount(c)}
-              تعمیر
-              •
-              ${
-                state.vehicles.filter(
-                  v => v.customerId === c.id
-                ).length
-              }
-              خودرو
-            </div>
+            <span>
+              ‹
+            </span>
 
           </div>
-
-          <span>‹</span>
-
-        </div>
-      `)
+        `;
+      })
       .join("");
   }
 
@@ -1347,11 +1775,13 @@
             Real Customers Core
           </div>
 
-          <h1>مشتریان</h1>
+          <h1>
+            مشتریان
+          </h1>
 
           <p>
-            پروفایل واقعی مشتری،
-            خودروها و تاریخچه تعمیرات.
+            پروفایل مشتری، خودروها
+            و تاریخچه تعمیرات واقعی.
           </p>
 
           <div class="stats">
@@ -1378,8 +1808,15 @@
         <div class="section-head">
 
           <div>
-            <h2>لیست مشتریان</h2>
-            <small>Customer Core</small>
+
+            <h2>
+              لیست مشتریان
+            </h2>
+
+            <small>
+              Customer Core
+            </small>
+
           </div>
 
           <button
@@ -1425,15 +1862,19 @@
     `;
   }
 
-  function customerForm(customer = null) {
-    const c =
+  function customerForm(
+    customer = null
+  ) {
+    const value =
       customer || {
         id: "",
+
         customerNo:
           "C-" +
           Date.now()
             .toString(36)
             .toUpperCase(),
+
         name: "",
         phone: "",
         address: "",
@@ -1477,35 +1918,39 @@
             ${field(
               "customerNo",
               "شماره مشتری",
-              c.customerNo
+              value.customerNo
             )}
 
             ${field(
               "customerName",
               "نام مشتری",
-              c.name
+              value.name
             )}
 
             ${field(
               "customerPhone",
               "تلفن",
-              c.phone,
+              value.phone,
               "tel"
             )}
 
             ${field(
               "customerAddress",
               "آدرس",
-              c.address
+              value.address
             )}
 
           </div>
 
-          ${field(
-            "customerTags",
-            "برچسب‌ها",
-            c.tags
-          )}
+          <div
+            style="margin-top:12px"
+          >
+            ${field(
+              "customerTags",
+              "برچسب‌ها",
+              value.tags
+            )}
+          </div>
 
           <div
             class="field"
@@ -1519,7 +1964,7 @@
             <textarea
               id="customerNotes"
               rows="4"
-            >${esc(c.notes)}</textarea>
+            >${esc(value.notes)}</textarea>
 
           </div>
 
@@ -1531,7 +1976,7 @@
             <button
               class="primary-btn"
               data-action="save-customer"
-              data-id="${esc(c.id)}"
+              data-id="${esc(value.id)}"
             >
               ذخیره مشتری
             </button>
@@ -1542,7 +1987,7 @@
                   <button
                     class="danger-btn"
                     data-action="delete-customer"
-                    data-id="${esc(c.id)}"
+                    data-id="${esc(value.id)}"
                   >
                     حذف
                   </button>
@@ -1560,26 +2005,91 @@
     `;
   }
 
-  function customerDetail(c) {
+  function collectCustomer(
+    id
+  ) {
+    const old =
+      state.customers.find(
+        customer =>
+          customer.id === id
+      );
+
+    return {
+      ...(old || {}),
+
+      id:
+        old?.id ||
+        uid("c"),
+
+      customerNo:
+        document
+          .getElementById(
+            "customerNo"
+          )
+          .value
+          .trim(),
+
+      name:
+        document
+          .getElementById(
+            "customerName"
+          )
+          .value
+          .trim(),
+
+      phone:
+        document
+          .getElementById(
+            "customerPhone"
+          )
+          .value
+          .trim(),
+
+      address:
+        document
+          .getElementById(
+            "customerAddress"
+          )
+          .value
+          .trim(),
+
+      tags:
+        document
+          .getElementById(
+            "customerTags"
+          )
+          .value
+          .trim(),
+
+      notes:
+        document
+          .getElementById(
+            "customerNotes"
+          )
+          .value
+          .trim(),
+
+      createdAt:
+        old?.createdAt ||
+        nowIso(),
+
+      updatedAt:
+        nowIso()
+    };
+  }
+
+  function customerDetail(
+    customer
+  ) {
     const vehicles =
-      state.vehicles.filter(
-        v => v.customerId === c.id
+      customerVehicles(
+        customer.id
       );
 
     const repairs =
-      state.repairs.filter(r => {
-        if (
-          c.phone &&
-          r.customerPhone === c.phone
-        ) {
-          return true;
-        }
-
-        return (
-          c.name &&
-          r.customerName === c.name
-        );
-      });
+      customerRepairs(
+        customer
+      );
 
     return `
       ${topbar("پروفایل مشتری")}
@@ -1589,15 +2099,15 @@
         <section class="hero">
 
           <div class="badge">
-            ${esc(c.customerNo || "")}
+            ${esc(customer.customerNo || "")}
           </div>
 
           <h1>
-            ${esc(c.name)}
+            ${esc(customer.name || "بدون نام")}
           </h1>
 
           <p>
-            ${esc(c.phone || "بدون تلفن")}
+            ${esc(customer.phone || "بدون تلفن")}
           </p>
 
           <div class="stats">
@@ -1617,7 +2127,9 @@
         </section>
 
         <div class="section-head">
-          <h2>عملیات</h2>
+          <h2>
+            عملیات
+          </h2>
         </div>
 
         <section class="toolbar">
@@ -1625,7 +2137,7 @@
           <button
             class="primary-btn"
             data-action="edit-customer"
-            data-id="${c.id}"
+            data-id="${customer.id}"
           >
             ✏️ ویرایش
           </button>
@@ -1633,7 +2145,7 @@
           <button
             class="ghost-btn"
             data-action="new-vehicle"
-            data-id="${c.id}"
+            data-id="${customer.id}"
           >
             🚗 ثبت خودرو
           </button>
@@ -1641,53 +2153,65 @@
         </section>
 
         <div class="section-head">
-          <h2>اطلاعات</h2>
+          <h2>
+            اطلاعات
+          </h2>
         </div>
 
         <section class="list">
 
-          ${detailRow("تلفن", c.phone)}
-          ${detailRow("آدرس", c.address)}
-          ${detailRow("برچسب‌ها", c.tags)}
-          ${detailRow("یادداشت", c.notes)}
+          ${detailRow("تلفن", customer.phone)}
+          ${detailRow("آدرس", customer.address)}
+          ${detailRow("برچسب‌ها", customer.tags)}
+          ${detailRow("یادداشت", customer.notes)}
 
         </section>
 
         <div class="section-head">
-          <h2>خودروها</h2>
+          <h2>
+            خودروها
+          </h2>
         </div>
 
         <section class="list">
 
           ${
             vehicles.length
-              ? vehicles.map(v => `
-                <div class="row">
+              ? vehicles
+                  .map(vehicle => `
+                    <div class="row">
 
-                  <div class="row-main">
+                      <div class="row-main">
 
-                    <div class="row-title">
-                      ${esc(
-                        [v.brand, v.model]
-                          .filter(Boolean)
-                          .join(" ") ||
-                        "خودرو"
-                      )}
+                        <div class="row-title">
+
+                          ${esc(
+                            [
+                              vehicle.brand,
+                              vehicle.model
+                            ]
+                              .filter(Boolean)
+                              .join(" ") ||
+                            "خودرو"
+                          )}
+
+                        </div>
+
+                        <div class="row-sub">
+
+                          ${
+                            vehicle.plate
+                              ? `پلاک: ${esc(vehicle.plate)}`
+                              : "بدون پلاک"
+                          }
+
+                        </div>
+
+                      </div>
+
                     </div>
-
-                    <div class="row-sub">
-                      ${
-                        v.plate
-                          ? `پلاک: ${esc(v.plate)}`
-                          : "بدون پلاک"
-                      }
-                    </div>
-
-                  </div>
-
-                </div>
-              `).join("")
-
+                  `)
+                  .join("")
               : `
                 <div class="empty">
                   خودرویی ثبت نشده است.
@@ -1698,50 +2222,45 @@
         </section>
 
         <div class="section-head">
-          <h2>سوابق تعمیرات</h2>
+          <h2>
+            سوابق تعمیر
+          </h2>
         </div>
 
         <section class="list">
 
           ${
             repairs.length
-              ? repairs.map(r => `
-                <div
-                  class="row clickable"
-                  data-repair-id="${r.id}"
-                >
+              ? repairs
+                  .map(repair => `
+                    <div
+                      class="row clickable"
+                      data-repair-id="${repair.id}"
+                    >
 
-                  <div class="row-main">
+                      <div class="row-main">
 
-                    <div class="row-title">
-                      ${esc(
-                        r.repairNo ||
-                        "بدون شماره"
-                      )}
+                        <div class="row-title">
+                          ${esc(repair.repairNo || "بدون شماره")}
+                        </div>
+
+                        <div class="row-sub">
+                          ${esc(repair.device || "دستگاه")}
+                        </div>
+
+                        <div class="row-sub">
+                          ${esc(statusLabel(repair.status))}
+                        </div>
+
+                      </div>
+
+                      <span>
+                        ‹
+                      </span>
+
                     </div>
-
-                    <div class="row-sub">
-                      ${esc(
-                        r.device ||
-                        "دستگاه"
-                      )}
-                    </div>
-
-                    <div class="row-sub">
-                      ${esc(
-                        statusLabel(
-                          r.status
-                        )
-                      )}
-                    </div>
-
-                  </div>
-
-                  <span>‹</span>
-
-                </div>
-              `).join("")
-
+                  `)
+                  .join("")
               : `
                 <div class="empty">
                   هنوز سابقه تعمیر ندارد.
@@ -1757,7 +2276,9 @@
     `;
   }
 
-  function vehicleForm(customerId) {
+  function vehicleForm(
+    customerId
+  ) {
     return `
       ${topbar("ثبت خودرو")}
 
@@ -1766,7 +2287,9 @@
         <section class="panel">
 
           <div class="section-head">
-            <h2>خودروی مشتری</h2>
+            <h2>
+              خودروی مشتری
+            </h2>
           </div>
 
           <div class="form-grid">
@@ -1821,64 +2344,13 @@
     `;
   }
 
-  function collectCustomer(id) {
-    const old =
-      state.customers.find(
-        c => c.id === id
-      );
-
-    return {
-      ...(old || {}),
-
-      id:
-        old?.id ||
-        uid("c"),
-
-      customerNo:
-        document.getElementById(
-          "customerNo"
-        ).value.trim(),
-
-      name:
-        document.getElementById(
-          "customerName"
-        ).value.trim(),
-
-      phone:
-        document.getElementById(
-          "customerPhone"
-        ).value.trim(),
-
-      address:
-        document.getElementById(
-          "customerAddress"
-        ).value.trim(),
-
-      tags:
-        document.getElementById(
-          "customerTags"
-        ).value.trim(),
-
-      notes:
-        document.getElementById(
-          "customerNotes"
-        ).value.trim(),
-
-      createdAt:
-        old?.createdAt ||
-        nowIso(),
-
-      updatedAt:
-        nowIso()
-    };
-  }
-
-  // =========================
+  // ======================================================
   // ACTIVITY
-  // =========================
+  // ======================================================
 
   function activity() {
-    const s = repairStats();
+    const stats =
+      repairStats();
 
     return `
       ${topbar("فعالیت")}
@@ -1887,42 +2359,80 @@
 
         <section class="hero">
 
-          <h1>مرکز فعالیت</h1>
+          <h1>
+            مرکز فعالیت
+          </h1>
 
           <p>
-            آمار واقعی داده‌های ثبت‌شده.
+            آمار واقعی داده‌های فعلی.
           </p>
 
         </section>
 
-        <div class="section-head">
-          <h2>Repair KPIs</h2>
-        </div>
-
         <section class="grid">
 
           <div class="card">
-            <div class="emoji">🛠️</div>
-            <h3>${s.total}</h3>
-            <p>کل پرونده‌های تعمیر</p>
+
+            <div class="emoji">
+              🛠️
+            </div>
+
+            <h3>
+              ${stats.total}
+            </h3>
+
+            <p>
+              کل تعمیرات
+            </p>
+
           </div>
 
           <div class="card">
-            <div class="emoji">⏳</div>
-            <h3>${s.open}</h3>
-            <p>تعمیرات باز</p>
+
+            <div class="emoji">
+              ⏳
+            </div>
+
+            <h3>
+              ${stats.open}
+            </h3>
+
+            <p>
+              تعمیرات باز
+            </p>
+
           </div>
 
           <div class="card">
-            <div class="emoji">✅</div>
-            <h3>${s.ready}</h3>
-            <p>آماده تحویل</p>
+
+            <div class="emoji">
+              ✅
+            </div>
+
+            <h3>
+              ${stats.ready}
+            </h3>
+
+            <p>
+              آماده تحویل
+            </p>
+
           </div>
 
           <div class="card">
-            <div class="emoji">👥</div>
-            <h3>${state.customers.length}</h3>
-            <p>مشتریان</p>
+
+            <div class="emoji">
+              👥
+            </div>
+
+            <h3>
+              ${state.customers.length}
+            </h3>
+
+            <p>
+              مشتریان
+            </p>
+
           </div>
 
         </section>
@@ -1933,9 +2443,9 @@
     `;
   }
 
-  // =========================
+  // ======================================================
   // STUDIO
-  // =========================
+  // ======================================================
 
   function studio() {
     return `
@@ -1954,14 +2464,16 @@
           </h1>
 
           <p>
-            تنظیمات ظاهر و ماژول‌ها
-            بدون ویرایش کد.
+            تنظیم ظاهر، هویت،
+            ترتیب و نمایش ماژول‌ها.
           </p>
 
         </section>
 
         <div class="section-head">
-          <h2>هویت Workspace</h2>
+          <h2>
+            هویت Workspace
+          </h2>
         </div>
 
         <section class="panel form-grid">
@@ -1981,14 +2493,18 @@
         </section>
 
         <div class="section-head">
-          <h2>ظاهر</h2>
+          <h2>
+            ظاهر
+          </h2>
         </div>
 
         <section class="panel form-grid">
 
           <div class="field">
 
-            <label>حالت</label>
+            <label>
+              حالت
+            </label>
 
             <select id="themeMode">
 
@@ -2020,7 +2536,9 @@
 
           <div class="field">
 
-            <label>Accent</label>
+            <label>
+              Accent
+            </label>
 
             <input
               id="accent"
@@ -2032,7 +2550,9 @@
 
           <div class="field">
 
-            <label>گردی کارت‌ها</label>
+            <label>
+              گردی کارت‌ها
+            </label>
 
             <input
               id="radius"
@@ -2046,7 +2566,9 @@
 
           <div class="field">
 
-            <label>تراکم</label>
+            <label>
+              تراکم
+            </label>
 
             <select id="density">
 
@@ -2079,74 +2601,90 @@
         </section>
 
         <div class="section-head">
-          <h2>ماژول‌ها</h2>
+          <h2>
+            ماژول‌ها
+          </h2>
         </div>
 
         <section class="panel module-editor">
 
           ${
-            state.modules.map((m, i) => `
-              <div
-                class="editor-row"
-                data-editor-id="${m.id}"
-              >
-
-                <input
-                  class="module-visible"
-                  type="checkbox"
-                  ${m.visible !== false ? "checked" : ""}
-                >
-
-                <div>
-
-                  <input
-                    class="module-title"
-                    value="${esc(m.title)}"
-                    style="
-                      width:100%;
-                      padding:9px;
-                      border-radius:9px;
-                      border:1px solid var(--border);
-                      background:var(--surface);
-                      color:var(--text)
-                    "
+            state.modules
+              .map(
+                (module, index) => `
+                  <div
+                    class="editor-row"
+                    data-editor-id="${module.id}"
                   >
 
-                  <div class="row-sub">
-                    ${esc(m.emoji)}
-                    ${esc(m.id)}
+                    <input
+                      class="module-visible"
+                      type="checkbox"
+                      ${
+                        module.visible !== false
+                          ? "checked"
+                          : ""
+                      }
+                    >
+
+                    <div>
+
+                      <input
+                        class="module-title"
+                        value="${esc(module.title)}"
+                        style="
+                          width:100%;
+                          padding:9px;
+                          border-radius:9px;
+                          border:1px solid var(--border);
+                          background:var(--surface);
+                          color:var(--text)
+                        "
+                      >
+
+                      <div class="row-sub">
+                        ${esc(module.emoji)}
+                        ${esc(module.id)}
+                      </div>
+
+                    </div>
+
+                    <div class="editor-actions">
+
+                      <button
+                        class="mini"
+                        data-move="up"
+                        data-id="${module.id}"
+                        ${
+                          index === 0
+                            ? "disabled"
+                            : ""
+                        }
+                      >
+                        ↑
+                      </button>
+
+                      <button
+                        class="mini"
+                        data-move="down"
+                        data-id="${module.id}"
+                        ${
+                          index ===
+                          state.modules.length -
+                            1
+                            ? "disabled"
+                            : ""
+                        }
+                      >
+                        ↓
+                      </button>
+
+                    </div>
+
                   </div>
-
-                </div>
-
-                <div class="editor-actions">
-
-                  <button
-                    class="mini"
-                    data-move="up"
-                    data-id="${m.id}"
-                    ${i === 0 ? "disabled" : ""}
-                  >
-                    ↑
-                  </button>
-
-                  <button
-                    class="mini"
-                    data-move="down"
-                    data-id="${m.id}"
-                    ${
-                      i === state.modules.length - 1
-                        ? "disabled"
-                        : ""
-                    }
-                  >
-                    ↓
-                  </button>
-
-                </div>
-
-              </div>
-            `).join("")
+                `
+              )
+              .join("")
           }
 
         </section>
@@ -2178,19 +2716,24 @@
     `;
   }
 
-  // =========================
-  // OTHER MODULES
-  // =========================
+  // ======================================================
+  // GENERIC MODULES
+  // ======================================================
 
-  function genericModule(id) {
-    const m =
+  function genericModule(
+    id
+  ) {
+    const module =
       state.modules.find(
-        x => x.id === id
+        item =>
+          item.id === id
       );
 
     return `
       ${topbar(
-        `${m?.emoji || "◼"} ${m?.title || id}`
+        `${module?.emoji || "◼"} ${
+          module?.title || id
+        }`
       )}
 
       <main class="page">
@@ -2198,11 +2741,12 @@
         <section class="hero">
 
           <h1>
-            ${esc(m?.title || id)}
+            ${esc(module?.title || id)}
           </h1>
 
           <p>
-            این ماژول هنوز در مرحله توسعه Core قرار دارد.
+            این ماژول در مرحله بعدی
+            به Core عملیاتی تبدیل می‌شود.
           </p>
 
         </section>
@@ -2213,9 +2757,9 @@
     `;
   }
 
-  // =========================
+  // ======================================================
   // RENDER
-  // =========================
+  // ======================================================
 
   function render() {
     applyTheme();
@@ -2226,85 +2770,133 @@
       html = home();
     }
 
-    else if (route === "repairs") {
-      html = repairsPage();
-    }
-
-    else if (route === "repair-new") {
-      html = repairForm();
-    }
-
-    else if (route === "repair-edit") {
-      const r =
-        state.repairs.find(
-          x => x.id === routeArg
-        );
-
+    else if (
+      route === "repairs"
+    ) {
       html =
-        r
-          ? repairForm(r)
-          : repairsPage();
-    }
-
-    else if (route === "repair-detail") {
-      const r =
-        state.repairs.find(
-          x => x.id === routeArg
-        );
-
-      html =
-        r
-          ? repairDetail(r)
-          : repairsPage();
-    }
-
-    else if (route === "customers") {
-      html = customersPage();
-    }
-
-    else if (route === "customer-new") {
-      html = customerForm();
-    }
-
-    else if (route === "customer-edit") {
-      const c =
-        state.customers.find(
-          x => x.id === routeArg
-        );
-
-      html =
-        c
-          ? customerForm(c)
-          : customersPage();
-    }
-
-    else if (route === "customer-detail") {
-      const c =
-        state.customers.find(
-          x => x.id === routeArg
-        );
-
-      html =
-        c
-          ? customerDetail(c)
-          : customersPage();
-    }
-
-    else if (route === "vehicle-new") {
-      html =
-        vehicleForm(routeArg);
-    }
-
-    else if (route === "activity") {
-      html = activity();
-    }
-
-    else if (route === "studio") {
-      html = studio();
+        repairsPage();
     }
 
     else if (
-      route.startsWith("module:")
+      route === "repair-new"
+    ) {
+      html =
+        repairForm();
+    }
+
+    else if (
+      route === "repair-edit"
+    ) {
+      const repair =
+        state.repairs.find(
+          item =>
+            item.id ===
+            routeArg
+        );
+
+      html =
+        repair
+          ? repairForm(
+              repair
+            )
+          : repairsPage();
+    }
+
+    else if (
+      route === "repair-detail"
+    ) {
+      const repair =
+        state.repairs.find(
+          item =>
+            item.id ===
+            routeArg
+        );
+
+      html =
+        repair
+          ? repairDetail(
+              repair
+            )
+          : repairsPage();
+    }
+
+    else if (
+      route === "customers"
+    ) {
+      html =
+        customersPage();
+    }
+
+    else if (
+      route === "customer-new"
+    ) {
+      html =
+        customerForm();
+    }
+
+    else if (
+      route === "customer-edit"
+    ) {
+      const customer =
+        state.customers.find(
+          item =>
+            item.id ===
+            routeArg
+        );
+
+      html =
+        customer
+          ? customerForm(
+              customer
+            )
+          : customersPage();
+    }
+
+    else if (
+      route === "customer-detail"
+    ) {
+      const customer =
+        state.customers.find(
+          item =>
+            item.id ===
+            routeArg
+        );
+
+      html =
+        customer
+          ? customerDetail(
+              customer
+            )
+          : customersPage();
+    }
+
+    else if (
+      route === "vehicle-new"
+    ) {
+      html =
+        vehicleForm(
+          routeArg
+        );
+    }
+
+    else if (
+      route === "activity"
+    ) {
+      html =
+        activity();
+    }
+
+    else if (
+      route === "studio"
+    ) {
+      html =
+        studio();
+    }
+
+    else if (
+      route.startsWith(
+        "module:"
+      )
     ) {
       html =
         genericModule(
@@ -2318,30 +2910,37 @@
       html = home();
     }
 
-    document.getElementById(
-      "app"
-    ).innerHTML = `
+    const app =
+      document.getElementById(
+        "app"
+      );
+
+    if (!app) {
+      return;
+    }
+
+    app.innerHTML = `
       <div class="shell">
         ${html}
       </div>
     `;
   }
 
-  // =========================
-  // EVENTS
-  // =========================
+  // ======================================================
+  // CLICK EVENTS
+  // ======================================================
 
   document.addEventListener(
     "click",
-    e => {
-      const routeEl =
-        e.target.closest(
+    event => {
+      const routeElement =
+        event.target.closest(
           "[data-route]"
         );
 
-      if (routeEl) {
+      if (routeElement) {
         const next =
-          routeEl.dataset.route;
+          routeElement.dataset.route;
 
         if (next !== route) {
           navigate(next);
@@ -2350,23 +2949,29 @@
         return;
       }
 
-      const moduleEl =
-        e.target.closest(
+      const moduleElement =
+        event.target.closest(
           "[data-module]"
         );
 
-      if (moduleEl) {
+      if (moduleElement) {
         const id =
-          moduleEl.dataset.module;
+          moduleElement.dataset.module;
 
-        if (id === "repairs") {
-          navigate("repairs");
+        if (
+          id === "repairs"
+        ) {
+          navigate(
+            "repairs"
+          );
         }
 
         else if (
           id === "customers"
         ) {
-          navigate("customers");
+          navigate(
+            "customers"
+          );
         }
 
         else {
@@ -2378,63 +2983,67 @@
         return;
       }
 
-      const repairEl =
-        e.target.closest(
+      const repairRow =
+        event.target.closest(
           "[data-repair-id]"
         );
 
-      if (repairEl) {
+      if (repairRow) {
         navigate(
           "repair-detail",
-          repairEl.dataset.repairId
+          repairRow.dataset
+            .repairId
         );
 
         return;
       }
 
-      const customerEl =
-        e.target.closest(
+      const customerRow =
+        event.target.closest(
           "[data-customer-id]"
         );
 
-      if (customerEl) {
+      if (customerRow) {
         navigate(
           "customer-detail",
-          customerEl.dataset.customerId
+          customerRow.dataset
+            .customerId
         );
 
         return;
       }
 
-      const moveEl =
-        e.target.closest(
+      const moveElement =
+        event.target.closest(
           "[data-move]"
         );
 
-      if (moveEl) {
-        const idx =
+      if (moveElement) {
+        const index =
           state.modules.findIndex(
-            x =>
-              x.id ===
-              moveEl.dataset.id
+            item =>
+              item.id ===
+              moveElement.dataset.id
           );
 
-        const next =
-          moveEl.dataset.move === "up"
-            ? idx - 1
-            : idx + 1;
+        const target =
+          moveElement.dataset.move ===
+          "up"
+            ? index - 1
+            : index + 1;
 
         if (
-          idx >= 0 &&
-          next >= 0 &&
-          next < state.modules.length
+          index >= 0 &&
+          target >= 0 &&
+          target <
+            state.modules.length
         ) {
           [
-            state.modules[idx],
-            state.modules[next]
+            state.modules[index],
+            state.modules[target]
           ] = [
-            state.modules[next],
-            state.modules[idx]
+            state.modules[target],
+            state.modules[index]
           ];
 
           saveState("");
@@ -2444,29 +3053,35 @@
         return;
       }
 
-      const a =
-        e.target.closest(
+      const actionElement =
+        event.target.closest(
           "[data-action]"
         );
 
-      if (!a) return;
+      if (!actionElement) {
+        return;
+      }
 
       const action =
-        a.dataset.action;
+        actionElement.dataset.action;
 
       const id =
-        a.dataset.id;
+        actionElement.dataset.id;
 
-      if (action === "back") {
+      if (
+        action === "back"
+      ) {
         goBack();
         return;
       }
 
       if (
-        action === "toggle-theme"
+        action ===
+        "toggle-theme"
       ) {
         state.theme.mode =
-          state.theme.mode === "dark"
+          state.theme.mode ===
+          "dark"
             ? "light"
             : "dark";
 
@@ -2476,17 +3091,24 @@
         return;
       }
 
-      // REPAIRS
+      // --------------------------------
+      // REPAIR ACTIONS
+      // --------------------------------
 
       if (
-        action === "new-repair"
+        action ===
+        "new-repair"
       ) {
-        navigate("repair-new");
+        navigate(
+          "repair-new"
+        );
+
         return;
       }
 
       if (
-        action === "edit-repair"
+        action ===
+        "edit-repair"
       ) {
         navigate(
           "repair-edit",
@@ -2497,20 +3119,38 @@
       }
 
       if (
-        action === "save-repair"
+        action ===
+        "save-repair"
       ) {
-        const r =
-          collectRepair(id);
-
-        const idx =
-          state.repairs.findIndex(
-            x => x.id === r.id
+        const repair =
+          collectRepair(
+            id
           );
 
-        if (idx >= 0) {
-          state.repairs[idx] = r;
+        const customer =
+          ensureCustomerForRepair(
+            repair
+          );
+
+        ensureVehicleForRepair(
+          repair,
+          customer
+        );
+
+        const index =
+          state.repairs.findIndex(
+            item =>
+              item.id ===
+              repair.id
+          );
+
+        if (index >= 0) {
+          state.repairs[index] =
+            repair;
         } else {
-          state.repairs.push(r);
+          state.repairs.push(
+            repair
+          );
         }
 
         saveState(
@@ -2519,7 +3159,7 @@
 
         navigate(
           "repair-detail",
-          r.id,
+          repair.id,
           {
             replace: true
           }
@@ -2529,7 +3169,8 @@
       }
 
       if (
-        action === "delete-repair"
+        action ===
+        "delete-repair"
       ) {
         if (
           confirm(
@@ -2538,7 +3179,8 @@
         ) {
           state.repairs =
             state.repairs.filter(
-              r => r.id !== id
+              repair =>
+                repair.id !== id
             );
 
           saveState(
@@ -2558,21 +3200,26 @@
       }
 
       if (
-        action === "start-timer"
+        action ===
+        "start-timer"
       ) {
-        const r =
+        const repair =
           state.repairs.find(
-            x => x.id === id
+            item =>
+              item.id === id
           );
 
         if (
-          r &&
-          !r.timerRunning
+          repair &&
+          !repair.timerRunning
         ) {
-          r.timerRunning = true;
-          r.timerStartedAt =
+          repair.timerRunning =
+            true;
+
+          repair.timerStartedAt =
             nowIso();
-          r.updatedAt =
+
+          repair.updatedAt =
             nowIso();
 
           saveState("");
@@ -2583,23 +3230,32 @@
       }
 
       if (
-        action === "pause-timer"
+        action ===
+        "pause-timer"
       ) {
-        const r =
+        const repair =
           state.repairs.find(
-            x => x.id === id
+            item =>
+              item.id === id
           );
 
         if (
-          r &&
-          r.timerRunning
+          repair &&
+          repair.timerRunning
         ) {
-          r.elapsedSeconds =
-            getElapsedSeconds(r);
+          repair.elapsedSeconds =
+            getElapsedSeconds(
+              repair
+            );
 
-          r.timerRunning = false;
-          r.timerStartedAt = null;
-          r.updatedAt = nowIso();
+          repair.timerRunning =
+            false;
+
+          repair.timerStartedAt =
+            null;
+
+          repair.updatedAt =
+            nowIso();
 
           saveState("");
           render();
@@ -2609,16 +3265,21 @@
       }
 
       if (
-        action === "mark-ready"
+        action ===
+        "mark-ready"
       ) {
-        const r =
+        const repair =
           state.repairs.find(
-            x => x.id === id
+            item =>
+              item.id === id
           );
 
-        if (r) {
-          r.status = "ready";
-          r.updatedAt = nowIso();
+        if (repair) {
+          repair.status =
+            "ready";
+
+          repair.updatedAt =
+            nowIso();
 
           saveState(
             "آماده تحویل شد"
@@ -2630,10 +3291,13 @@
         return;
       }
 
-      // CUSTOMERS
+      // --------------------------------
+      // CUSTOMER ACTIONS
+      // --------------------------------
 
       if (
-        action === "new-customer"
+        action ===
+        "new-customer"
       ) {
         navigate(
           "customer-new"
@@ -2643,7 +3307,8 @@
       }
 
       if (
-        action === "edit-customer"
+        action ===
+        "edit-customer"
       ) {
         navigate(
           "customer-edit",
@@ -2654,12 +3319,16 @@
       }
 
       if (
-        action === "save-customer"
+        action ===
+        "save-customer"
       ) {
         const name =
-          document.getElementById(
-            "customerName"
-          ).value.trim();
+          document
+            .getElementById(
+              "customerName"
+            )
+            .value
+            .trim();
 
         if (!name) {
           alert(
@@ -2669,18 +3338,25 @@
           return;
         }
 
-        const c =
-          collectCustomer(id);
-
-        const idx =
-          state.customers.findIndex(
-            x => x.id === c.id
+        const customer =
+          collectCustomer(
+            id
           );
 
-        if (idx >= 0) {
-          state.customers[idx] = c;
+        const index =
+          state.customers.findIndex(
+            item =>
+              item.id ===
+              customer.id
+          );
+
+        if (index >= 0) {
+          state.customers[index] =
+            customer;
         } else {
-          state.customers.push(c);
+          state.customers.push(
+            customer
+          );
         }
 
         saveState(
@@ -2689,7 +3365,7 @@
 
         navigate(
           "customer-detail",
-          c.id,
+          customer.id,
           {
             replace: true
           }
@@ -2699,8 +3375,32 @@
       }
 
       if (
-        action === "delete-customer"
+        action ===
+        "delete-customer"
       ) {
+        const customer =
+          state.customers.find(
+            item =>
+              item.id === id
+          );
+
+        const repairs =
+          customer
+            ? customerRepairs(
+                customer
+              )
+            : [];
+
+        if (
+          repairs.length
+        ) {
+          alert(
+            "این مشتری سابقه تعمیر دارد و حذف مستقیم مجاز نیست."
+          );
+
+          return;
+        }
+
         if (
           confirm(
             "این مشتری حذف شود؟"
@@ -2708,13 +3408,15 @@
         ) {
           state.customers =
             state.customers.filter(
-              c => c.id !== id
+              item =>
+                item.id !== id
             );
 
           state.vehicles =
             state.vehicles.filter(
-              v =>
-                v.customerId !== id
+              vehicle =>
+                vehicle.customerId !==
+                id
             );
 
           saveState(
@@ -2734,7 +3436,8 @@
       }
 
       if (
-        action === "new-vehicle"
+        action ===
+        "new-vehicle"
       ) {
         navigate(
           "vehicle-new",
@@ -2745,31 +3448,47 @@
       }
 
       if (
-        action === "save-vehicle"
+        action ===
+        "save-vehicle"
       ) {
-        const v = {
-          id: uid("v"),
-          customerId: id,
+        const vehicle = {
+          id:
+            uid("v"),
+
+          customerId:
+            id,
 
           brand:
-            document.getElementById(
-              "vehicleBrand"
-            ).value.trim(),
+            document
+              .getElementById(
+                "vehicleBrand"
+              )
+              .value
+              .trim(),
 
           model:
-            document.getElementById(
-              "vehicleModel"
-            ).value.trim(),
+            document
+              .getElementById(
+                "vehicleModel"
+              )
+              .value
+              .trim(),
 
           year:
-            document.getElementById(
-              "vehicleYear"
-            ).value.trim(),
+            document
+              .getElementById(
+                "vehicleYear"
+              )
+              .value
+              .trim(),
 
           plate:
-            document.getElementById(
-              "vehiclePlate"
-            ).value.trim(),
+            document
+              .getElementById(
+                "vehiclePlate"
+              )
+              .value
+              .trim(),
 
           createdAt:
             nowIso(),
@@ -2778,7 +3497,9 @@
             nowIso()
         };
 
-        state.vehicles.push(v);
+        state.vehicles.push(
+          vehicle
+        );
 
         saveState(
           "خودرو ذخیره شد"
@@ -2795,71 +3516,94 @@
         return;
       }
 
+      // --------------------------------
       // STUDIO
+      // --------------------------------
 
       if (
-        action === "save-studio"
+        action ===
+        "save-studio"
       ) {
         state.workspace.name =
-          document.getElementById(
-            "workspaceName"
-          ).value.trim() ||
+          document
+            .getElementById(
+              "workspaceName"
+            )
+            .value
+            .trim() ||
           DEFAULT.workspace.name;
 
         state.workspace.subtitle =
-          document.getElementById(
-            "workspaceSubtitle"
-          ).value.trim() ||
+          document
+            .getElementById(
+              "workspaceSubtitle"
+            )
+            .value
+            .trim() ||
           DEFAULT.workspace.subtitle;
 
         state.theme.mode =
-          document.getElementById(
-            "themeMode"
-          ).value;
+          document
+            .getElementById(
+              "themeMode"
+            )
+            .value;
 
         state.theme.accent =
-          document.getElementById(
-            "accent"
-          ).value;
+          document
+            .getElementById(
+              "accent"
+            )
+            .value;
 
         state.theme.radius =
           Number(
-            document.getElementById(
-              "radius"
-            ).value
+            document
+              .getElementById(
+                "radius"
+              )
+              .value
           );
 
         state.theme.density =
-          document.getElementById(
-            "density"
-          ).value;
+          document
+            .getElementById(
+              "density"
+            )
+            .value;
 
         document
           .querySelectorAll(
             "[data-editor-id]"
           )
           .forEach(row => {
-            const m =
+            const module =
               state.modules.find(
-                x =>
-                  x.id ===
-                  row.dataset.editorId
+                item =>
+                  item.id ===
+                  row.dataset
+                    .editorId
               );
 
-            if (m) {
-              m.title =
-                row
-                  .querySelector(
-                    ".module-title"
-                  )
-                  .value.trim() ||
-                m.title;
-
-              m.visible =
-                row.querySelector(
-                  ".module-visible"
-                ).checked;
+            if (!module) {
+              return;
             }
+
+            module.title =
+              row
+                .querySelector(
+                  ".module-title"
+                )
+                .value
+                .trim() ||
+              module.title;
+
+            module.visible =
+              row
+                .querySelector(
+                  ".module-visible"
+                )
+                .checked;
           });
 
         saveState(
@@ -2872,7 +3616,8 @@
       }
 
       if (
-        action === "export"
+        action ===
+        "export"
       ) {
         const blob =
           new Blob(
@@ -2900,8 +3645,9 @@
           );
 
         link.href = url;
+
         link.download =
-          "farmandeh-V1-data.json";
+          "farmandeh-V1.2-data.json";
 
         link.click();
 
@@ -2912,11 +3658,15 @@
     }
   );
 
+  // ======================================================
+  // INPUT EVENTS
+  // ======================================================
+
   document.addEventListener(
     "input",
-    e => {
+    event => {
       if (
-        e.target.id ===
+        event.target.id ===
         "repairSearch"
       ) {
         const list =
@@ -2933,25 +3683,25 @@
       }
 
       if (
-        e.target.id ===
+        event.target.id ===
         "customerSearch"
       ) {
-        const q =
-          e.target.value
+        const search =
+          event.target.value
             .trim()
             .toLowerCase();
 
-        const filtered =
+        const customers =
           state.customers.filter(
-            c =>
+            customer =>
               [
-                c.customerNo,
-                c.name,
-                c.phone
-              ].some(v =>
-                String(v || "")
+                customer.customerNo,
+                customer.name,
+                customer.phone
+              ].some(value =>
+                String(value || "")
                   .toLowerCase()
-                  .includes(q)
+                  .includes(search)
               )
           );
 
@@ -2963,34 +3713,36 @@
         if (list) {
           list.innerHTML =
             customerRows(
-              filtered
+              customers
             );
         }
       }
 
       if (
-        e.target.id === "accent"
+        event.target.id ===
+        "accent"
       ) {
         document.documentElement.style.setProperty(
           "--accent",
-          e.target.value
+          event.target.value
         );
       }
 
       if (
-        e.target.id === "radius"
+        event.target.id ===
+        "radius"
       ) {
         document.documentElement.style.setProperty(
           "--radius",
-          `${e.target.value}px`
+          `${event.target.value}px`
         );
       }
     }
   );
 
-  // =========================
-  // HISTORY / BACK
-  // =========================
+  // ======================================================
+  // BROWSER / ANDROID BACK
+  // ======================================================
 
   history.replaceState(
     {
@@ -3023,9 +3775,15 @@
     }
   );
 
+  // ======================================================
+  // STARTUP
+  // ======================================================
+
+  migrateExistingRepairsToCustomers();
+
   render();
 
   console.log(
-    "Farmandeh Runtime V1.1 loaded"
+    "Farmandeh Runtime V1.2 loaded"
   );
 })();
